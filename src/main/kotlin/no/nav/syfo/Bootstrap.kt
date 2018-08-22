@@ -47,6 +47,7 @@ fun main(args: Array<String>) {
 
     val consumerProperties = readConsumerConfig(env, StringDeserializer::class)
     val consumer = KafkaConsumer<String, String>(consumerProperties)
+    consumer.subscribe(listOf(env.kafkaSM2013JournalfoeringTopic))
     listen(consumer, applicationState)
 
     Runtime.getRuntime().addShutdownHook(Thread {

@@ -7,7 +7,7 @@ data class Environment(
     val srvappnameUsername: String = getEnvVar("SRVSYFOSYKEMELDINGJOURNALING_USERNAME"),
     val srvappnamePassword: String = getEnvVar("SRVSYFOSYKEMELDINGJOURNALING_PASSWORD"),
     val kafkaBootstrapServers: String = getEnvVar("KAFKA_BOOTSTRAP_SERVERS_URL"),
-    val kafkaSM2013ReceiveTopic: String = getEnvVar("KAFKA_SM2013_RECEIVE_TOPIC", "privat-syfo-sm2013-persistInJoark")
+    val kafkaSM2013JournalfoeringTopic: String = getEnvVar("KAFKA_SM2013_JOURNALING_TOPIC", "privat-syfo-sm2013-journalfoerJoark")
 )
 
 fun getEnvVar(varName: String, defaultValue: String? = null) =

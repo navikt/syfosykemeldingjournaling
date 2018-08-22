@@ -14,7 +14,7 @@ persist it
 Unless you change kafka_consumer.properties you will need to either connect to one of NAVs kafka clusters or use the
 [docker compose](https://github.com/navikt/navkafka-docker-compose) environment to test it against. To run it the
 environment variables `SRVSYFOSYKEMELDINGREGLER_USERNAME` and `SYFOSYKEMELDINGREGLER_PASSWORD` needs to be set to
-a user that has access to the topic defined by the environment variable `KAFKA_SM2013_RECEIVE_TOPIC`
+a user that has access to the topic defined by the environment variable `KAFKA_SM2013_JOURNALING_TOPIC`
 
 
 ### Building the application
