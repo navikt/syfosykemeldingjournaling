@@ -7,14 +7,14 @@ replicas:
 port: 8080
 healthcheck:
   liveness:
-    path: /internal/isAlive
-    initialDelay: 60
+    path: /is_alive
+    initialDelay: 10
     timeout: 1
     periodSeconds: 10
     failureThreshold: 3
   readiness:
-    path: /internal/isReady
-    initialDelay: 60
+    path: /is_ready
+    initialDelay: 10
     timeout: 1
 prometheus:
   enabled: true
@@ -22,14 +22,14 @@ prometheus:
 resources:
   limits:
     cpu: 1000m
-    memory: 512Mi
+    memory: 256Mi
   requests:
-    cpu: 500m
-    memory: 384Mi
+    cpu: 50m
+    memory: 128Mi
 fasitResources:
   exposed:
 used:
-  - alias: srvappname
+  - alias: srvsyfosykemeldingjournaling
     resourceType: Credential
-  - alias: sample_soap
-    resourceType: webserviceendpoint
+  - alias: kafka_bootstrap_servers
+    resourceType: baseurl

@@ -22,7 +22,7 @@ fun exampleSoapClientSTS() {
         features.add(LoggingFeature())
         serviceClass = ThisIsNotAWSDL::class.java
     }.create() as ThisIsNotAWSDL
-    configureSTSFor(soapService, env.srvappnameUsername, env.srvappnamePassword, env.securityTokenServiceUrl)
+    configureSTSFor(soapService, env.srvsykemeldingjournalingUsername, env.srvsykemeldingjournalingPassword, env.securityTokenServiceUrl)
 
     println(soapService.giveString())
 }
@@ -35,9 +35,9 @@ fun exampleClientUsernameToken() {
         features.add(LoggingFeature())
         serviceClass = ThisIsNotAWSDL::class.java
         outInterceptors.add(WSS4JOutInterceptor(mapOf(
-                WSHandlerConstants.USER to env.srvappnameUsername,
+                WSHandlerConstants.USER to env.srvsykemeldingjournalingUsername,
                 WSHandlerConstants.PW_CALLBACK_REF to CallbackHandler {
-                    (it[0] as WSPasswordCallback).password = env.srvappnamePassword
+                    (it[0] as WSPasswordCallback).password = env.srvsykemeldingjournalingPassword
                 },
                 WSHandlerConstants.ACTION to WSHandlerConstants.USERNAME_TOKEN,
                 WSHandlerConstants.PASSWORD_TYPE to WSConstants.PW_TEXT

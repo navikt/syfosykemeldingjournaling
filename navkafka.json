@@ -1,0 +1,12 @@
+{
+  "topics": [
+    {
+      "topicName": "privat-syfomottak-journalFoer",
+      "members": [
+        {"member":"srvsyfosykemelding", "role":"CONSUMER"},
+        {"member":"srvsyfomottak", "role":"PRODUCER"}
+      ],
+      "numPartitions": 3
+    }
+  ]
+}
