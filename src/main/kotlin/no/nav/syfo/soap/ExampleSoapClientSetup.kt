@@ -18,11 +18,11 @@ fun exampleSoapClientSTS() {
     val env = Environment()
 
     val soapService = JaxWsClientFactoryBean().apply {
-        address = env.sampleSoapEndpointurl
+        //address = env.sampleSoapEndpointurl
         features.add(LoggingFeature())
         serviceClass = ThisIsNotAWSDL::class.java
     }.create() as ThisIsNotAWSDL
-    configureSTSFor(soapService, env.srvsykemeldingjournalingUsername, env.srvsykemeldingjournalingPassword, env.securityTokenServiceUrl)
+    //configureSTSFor(soapService, env.srvsykemeldingjournalingUsername, env.srvsykemeldingjournalingPassword, env.securityTokenServiceUrl)
 
     println(soapService.giveString())
 }
@@ -31,7 +31,7 @@ fun exampleClientUsernameToken() {
     val env = Environment()
 
     val soapService = JaxWsClientFactoryBean().apply {
-        address = env.sampleSoapEndpointurl
+        //address = env.sampleSoapEndpointurl
         features.add(LoggingFeature())
         serviceClass = ThisIsNotAWSDL::class.java
         outInterceptors.add(WSS4JOutInterceptor(mapOf(

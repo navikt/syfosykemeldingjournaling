@@ -2,7 +2,9 @@ buildscript {
     ext.coroutines_version = '0.23.4'
     ext.cxf_version = '3.2.6'
     ext.fellesformat_version = '1.2'
+    ext.jaxb_api_version = '2.1'
     ext.jaxb_version = '2.3.0.1'
+    ext.jaxws_api_version = '2.2.1'
     ext.kafka_version = '2.0.0'
     ext.kafka_embedded_version = '1.0.0'
     ext.kith_hodemelding_version = '1.1'
@@ -11,6 +13,7 @@ buildscript {
     ext.logstash_logback_encoder = '5.2'
     ext.logback_version = '1.2.3'
     ext.prometheus_version = '0.5.0'
+    ext.saaj_version = '1.4.0'
     ext.spek_version = "2.0.0-alpha.1"
 }
 
@@ -62,6 +65,10 @@ dependencies {
 
     implementation "com.sun.xml.bind:jaxb-impl:$jaxb_version"
     implementation "com.sun.xml.bind:jaxb-core:$jaxb_version"
+    implementation "javax.xml.bind:jaxb-api:$jaxb_api_version"
+
+    implementation "javax.xml.ws:jaxws-api:$jaxws_api_version"
+    implementation "com.sun.xml.messaging.saaj:saaj-impl:$saaj_version"
 
     testImplementation "org.amshove.kluent:kluent:$kluent_version"
     testImplementation "org.spekframework.spek2:spek-dsl-jvm:$spek_version"
