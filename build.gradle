@@ -20,7 +20,10 @@ buildscript {
 plugins {
     id 'org.jetbrains.kotlin.jvm' version '1.2.51'
     id("com.diffplug.gradle.spotless") version "3.14.0"
+    id 'application'
 }
+
+mainClassName = 'no.nav.syfo.BootstrapKt'
 
 group 'no.nav.syfo'
 version '1.0-SNAPSHOT'
