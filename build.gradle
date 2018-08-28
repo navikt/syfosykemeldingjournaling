@@ -37,6 +37,19 @@ repositories {
     maven { url "https://dl.bintray.com/spekframework/spek-dev" }
 }
 
+applicationDefaultJvmArgs = [
+        '-Djavax.net.ssl.trustStore=${NAV_TRUSTSTORE_PATH}',
+        '-Djavax.net.ssl.trustStorePassword=${NAV_TRUSTSTORE_PASSWORD}',
+        '-Djavax.net.ssl.trustStoreType=JKS'
+]
+
+startScripts {
+    doLast {
+        unixScript.text = unixScript.text.replace('\\${NAV_TRUSTSTORE_PATH}', '${NAV_TRUSTSTORE_PATH}')
+        unixScript.text = unixScript.text.replace('\\${NAV_TRUSTSTORE_PASSWORD}', '${NAV_TRUSTSTORE_PASSWORD}')
+    }
+}
+
 test {
     useJUnitPlatform {
         includeEngines 'spek2'
