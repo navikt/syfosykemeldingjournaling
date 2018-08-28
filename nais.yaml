@@ -18,7 +18,7 @@ healthcheck:
     timeout: 1
 prometheus:
   enabled: true
-  path: /internal/prometheus
+  path: /prometheus
 resources:
   limits:
     cpu: 1000m
@@ -28,7 +28,7 @@ resources:
     memory: 128Mi
 fasitResources:
   exposed:
-used:
+  used:
   - alias: srvsyfosykemeldingjournaling
     resourceType: Credential
   - alias: kafka_bootstrap_servers
