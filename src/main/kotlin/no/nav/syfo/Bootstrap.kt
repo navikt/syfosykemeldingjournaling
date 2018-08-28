@@ -30,11 +30,7 @@ val unmarshaller: Unmarshaller = jaxBContext.createUnmarshaller()
 
 val log: Logger = LoggerFactory.getLogger("no.nav.syfo.smjoark")
 
-fun doReadynessCheck(): Boolean {
-    return true
-}
-
-data class ApplicationState(var running: Boolean = true)
+data class ApplicationState(var running: Boolean = true, var initialized: Boolean = false)
 
 
 fun main(args: Array<String>) {
@@ -44,15 +40,19 @@ fun main(args: Array<String>) {
     val applicationServer = embeddedServer(Netty, env.applicationPort) {
         initRouting(applicationState)
     }.start(wait = false)
+    try {
+        val consumerProperties = readConsumerConfig(env, StringDeserializer::class)
+        val consumer = KafkaConsumer<String, String>(consumerProperties)
+        consumer.subscribe(listOf(env.kafkaSM2013JournalfoeringTopic))
+        listen(consumer, applicationState)
 
-    val consumerProperties = readConsumerConfig(env, StringDeserializer::class)
-    val consumer = KafkaConsumer<String, String>(consumerProperties)
-    consumer.subscribe(listOf(env.kafkaSM2013JournalfoeringTopic))
-    listen(consumer, applicationState)
-
-    Runtime.getRuntime().addShutdownHook(Thread {
-        applicationServer.stop(10, 10, TimeUnit.SECONDS)
-    })
+        Runtime.getRuntime().addShutdownHook(Thread {
+            applicationServer.stop(10, 10, TimeUnit.SECONDS)
+        })
+        applicationState.initialized = true
+    } finally {
+        applicationState.running = false
+    }
 }
 
 fun listen(consumer: KafkaConsumer<String, String>, applicationState: ApplicationState) {
@@ -73,7 +73,14 @@ fun XMLOrganisation.extractOrganizationNumber(): String? = ident.find { it.typeI
 
 fun Application.initRouting(applicationState: ApplicationState) {
     routing {
-        registerNaisApi(readynessCheck = ::doReadynessCheck, livenessCheck = { applicationState.running })
+        registerNaisApi(
+                readynessCheck = {
+                    applicationState.initialized
+                },
+                livenessCheck = {
+                    applicationState.running
+                }
+        )
     }
 }
 
@@ -85,7 +92,7 @@ fun readConsumerConfig(
         valueDeserializer: KClass<out Deserializer<out Any>>,
         keyDeserializer: KClass<out Deserializer<out Any>> = valueDeserializer
 ) = Properties().apply {
-    load(Properties::class.java.getResourceAsStream("/kafka_consumer.properties"))
+    load(Environment::class.java.getResourceAsStream("/kafka_consumer.properties"))
     this["sasl.jaas.config"] = "org.apache.kafka.common.security.plain.PlainLoginModule required " +
             "username=\"${env.srvsykemeldingjournalingUsername}\" password=\"${env.srvsykemeldingjournalingPassword}\";"
     this["key.deserializer"] = keyDeserializer.qualifiedName
