@@ -74,8 +74,8 @@ suspend fun listen(consumer: KafkaConsumer<String, String>, applicationState: Ap
                     .and<LogstashMarker>(append("ediLoggId", mottakEnhetBlokk.ediLoggId))
                     .and<LogstashMarker>(append("organizationNumber", msgHead.msgInfo.sender.organisation.extractOrganizationNumber()))
             log.info(marker, "Received a SM2013, trying to persist in Joark")
-            delay(100)
         }
+        delay(100)
     }
 }
 
