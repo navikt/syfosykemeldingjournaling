@@ -12,11 +12,7 @@ import org.spekframework.spek2.Spek
 import org.spekframework.spek2.style.specification.describe
 
 object SelftestSpek : Spek({
-    val applicationState = ApplicationState()
-
-    afterGroup {
-        applicationState.running = false
-    }
+    val applicationState = ApplicationState(running = true, initialized = true)
     describe("Calling selftest with successful liveness and readyness tests") {
         with(TestApplicationEngine()) {
             start()
