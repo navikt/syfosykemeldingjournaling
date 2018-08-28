@@ -4,6 +4,7 @@ import io.ktor.application.Application
 import io.ktor.routing.routing
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
+import kotlinx.coroutines.experimental.delay
 import kotlinx.coroutines.experimental.launch
 import kotlinx.coroutines.experimental.runBlocking
 import net.logstash.logback.marker.LogstashMarker
@@ -63,9 +64,9 @@ fun main(args: Array<String>) = runBlocking<Unit> {
     }
 }
 
-fun listen(consumer: KafkaConsumer<String, String>, applicationState: ApplicationState) {
+suspend fun listen(consumer: KafkaConsumer<String, String>, applicationState: ApplicationState) {
     while (applicationState.running) {
-        consumer.poll(Duration.ofMillis(1000)).forEach {
+        consumer.poll(Duration.ofMillis(0)).forEach {
             val fellesformat = unmarshaller.unmarshal(StringReader(it.value())) as XMLEIFellesformat
             val msgHead: XMLMsgHead = fellesformat.get()
             val mottakEnhetBlokk: XMLMottakenhetBlokk = fellesformat.get()
@@ -73,6 +74,7 @@ fun listen(consumer: KafkaConsumer<String, String>, applicationState: Applicatio
                     .and<LogstashMarker>(append("ediLoggId", mottakEnhetBlokk.ediLoggId))
                     .and<LogstashMarker>(append("organizationNumber", msgHead.msgInfo.sender.organisation.extractOrganizationNumber()))
             log.info(marker, "Received a SM2013, trying to persist in Joark")
+            delay(100)
         }
     }
 }
