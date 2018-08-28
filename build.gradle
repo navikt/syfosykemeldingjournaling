@@ -81,7 +81,7 @@ dependencies {
 
     implementation "org.glassfish.jaxb:jaxb-runtime:$jaxb_version"
     implementation "javax.xml.ws:jaxws-api:$jaxws_api_version"
-    //implementation "com.sun.xml.messaging.saaj:saaj-impl:$saaj_version"
+    implementation "com.sun.xml.messaging.saaj:saaj-impl:$saaj_version"
 
     testImplementation "org.amshove.kluent:kluent:$kluent_version"
     testImplementation "org.spekframework.spek2:spek-dsl-jvm:$spek_version"
