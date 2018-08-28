@@ -4,6 +4,8 @@ import io.ktor.application.Application
 import io.ktor.routing.routing
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
+import kotlinx.coroutines.experimental.launch
+import kotlinx.coroutines.experimental.runBlocking
 import net.logstash.logback.marker.LogstashMarker
 import net.logstash.logback.marker.Markers.append
 import no.kith.xmlstds.msghead._2006_05_24.XMLMsgHead
@@ -33,7 +35,7 @@ val log: Logger = LoggerFactory.getLogger("no.nav.syfo.smjoark")
 data class ApplicationState(var running: Boolean = true, var initialized: Boolean = false)
 
 
-fun main(args: Array<String>) {
+fun main(args: Array<String>) = runBlocking<Unit> {
     val env = Environment()
     val applicationState = ApplicationState()
 
@@ -42,14 +44,20 @@ fun main(args: Array<String>) {
     }.start(wait = false)
     try {
         val consumerProperties = readConsumerConfig(env, StringDeserializer::class)
-        val consumer = KafkaConsumer<String, String>(consumerProperties)
-        consumer.subscribe(listOf(env.kafkaSM2013JournalfoeringTopic))
-        listen(consumer, applicationState)
+        val applicationListeners = (1..env.applicationThreads).map {
+            launch {
+                val consumer = KafkaConsumer<String, String>(consumerProperties)
+                consumer.subscribe(listOf(env.kafkaSM2013JournalfoeringTopic))
+                listen(consumer, applicationState)
+            }
+        }.toList()
 
         Runtime.getRuntime().addShutdownHook(Thread {
             applicationServer.stop(10, 10, TimeUnit.SECONDS)
         })
         applicationState.initialized = true
+
+        applicationListeners.forEach { it.join() }
     } finally {
         applicationState.running = false
     }
