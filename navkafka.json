@@ -1,7 +1,7 @@
 {
   "topics": [
     {
-      "topicName": "privat-syfomottak-journalFoer",
+      "topicName": "privat-syfomottak-sm2013-journalfoerJoark",
       "members": [
         {"member":"srvsyfosykemelding", "role":"CONSUMER"},
         {"member":"srvsyfomottak", "role":"PRODUCER"}
