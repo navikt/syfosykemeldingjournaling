@@ -12,8 +12,8 @@ import net.logstash.logback.marker.Markers.append
 import no.kith.xmlstds.msghead._2006_05_24.XMLMsgHead
 import no.kith.xmlstds.msghead._2006_05_24.XMLOrganisation
 import no.nav.syfo.api.registerNaisApi
-import no.nav.xml.eiff._2.XMLEIFellesformat
-import no.nav.xml.eiff._2.XMLMottakenhetBlokk
+import no.trygdeetaten.xml.eiff._1.XMLEIFellesformat
+import no.trygdeetaten.xml.eiff._1.XMLMottakenhetBlokk
 import org.apache.kafka.clients.consumer.KafkaConsumer
 import org.apache.kafka.common.serialization.Deserializer
 import org.apache.kafka.common.serialization.StringDeserializer
