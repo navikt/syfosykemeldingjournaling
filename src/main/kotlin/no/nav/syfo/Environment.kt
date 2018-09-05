@@ -5,10 +5,11 @@ data class Environment(
         val applicationThreads: Int = getEnvVar("APPLICATION_THREADS", "4").toInt(),
         //val sampleSoapEndpointurl: String = getEnvVar("SAMPLE_SOAP_ENDPOINTURL"),
         //val securityTokenServiceUrl: String = getEnvVar("SECURITYTOKENSERVICE_URL"),
-        val srvsykemeldingjournalingUsername: String = getEnvVar("SRVSYFOSYKEMELDINGJOURNALING_USERNAME"),
-        val srvsykemeldingjournalingPassword: String = getEnvVar("SRVSYFOSYKEMELDINGJOURNALING_PASSWORD"),
+        val srvsykemeldingjournalingUsername: String = getEnvVar("SRVSYFOSMJOARK_USERNAME"),
+        val srvsykemeldingjournalingPassword: String = getEnvVar("SRVSYFOSMJOARK_PASSWORD"),
         val kafkaBootstrapServers: String = getEnvVar("KAFKA_BOOTSTRAP_SERVERS_URL"),
-        val kafkaSM2013JournalfoeringTopic: String = getEnvVar("KAFKA_SM2013_JOURNALING_TOPIC", "privat-syfomottak-sm2013-journalfoerJoark")
+        val smpapirAutomaticHandlingTopic: String = getEnvVar("KAFKA_SM2013_JOURNALING_TOPIC", "privat-syfo-smpapir-automatiskBehandling"),
+        val sm2013AutomaticHandlingTopic: String = getEnvVar("KAFKA_SM2013_JOURNALING_TOPIC", "privat-syfo-sm2013-automatiskBehandling")
 )
 
 fun getEnvVar(varName: String, defaultValue: String? = null) =

@@ -48,7 +48,7 @@ fun main(args: Array<String>) = runBlocking<Unit> {
         val applicationListeners = (1..env.applicationThreads).map {
             launch {
                 val consumer = KafkaConsumer<String, String>(consumerProperties)
-                consumer.subscribe(listOf(env.kafkaSM2013JournalfoeringTopic))
+                consumer.subscribe(listOf(env.sm2013AutomaticHandlingTopic, env.smpapirAutomaticHandlingTopic))
                 listen(consumer, applicationState)
             }
         }.toList()

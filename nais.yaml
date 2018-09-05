@@ -1,5 +1,5 @@
-name: "syfosykemeldingjournaling"
-image: "repo.adeo.no:5443/syfo/syfosykemeldingjournaling"
+name: "syfosmjoark"
+image: "repo.adeo.no:5443/syfo/syfosmjoark"
 replicas:
   min: 1
   max: 2
@@ -29,7 +29,7 @@ resources:
 fasitResources:
   exposed:
   used:
-  - alias: srvsyfosykemeldingjournaling
+  - alias: srvsyfosmjoark
     resourceType: Credential
   - alias: kafka_bootstrap_servers
     resourceType: baseurl

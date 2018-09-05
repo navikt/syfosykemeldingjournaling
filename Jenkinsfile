@@ -4,7 +4,7 @@ pipeline {
     agent any
 
     environment {
-        APPLICATION_NAME = 'syfosykemeldingjournaling'
+        APPLICATION_NAME = 'syfosmjoark'
         DISABLE_SLACK_MESSAGES = true
         ZONE = 'fss'
         DOCKER_SLUG='syfo'
