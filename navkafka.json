@@ -7,6 +7,14 @@
         {"member":"srvsyfomottak", "role":"PRODUCER"}
       ],
       "numPartitions": 3
+    },
+    {
+      "topicName": "privat-syfosmpapirmottak-sm2013",
+      "members": [
+        {"member":"srvsyfosykemelding", "role":"CONSUMER"},
+        {"member":"srvsyfosmpapirmottak", "role":"PRODUCER"}
+      ],
+      "numPartitions": 3
     }
   ]
 }
