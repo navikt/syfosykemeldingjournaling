@@ -71,7 +71,7 @@ suspend fun listen(consumer: KafkaConsumer<String, String>, applicationState: Ap
             val msgHead: XMLMsgHead = fellesformat.get()
             val mottakEnhetBlokk: XMLMottakenhetBlokk = fellesformat.get()
             val marker = append("msgId", msgHead.msgInfo.msgId)
-                    .and<LogstashMarker>(append("ediLoggId", mottakEnhetBlokk.ediLoggId))
+                    .and<LogstashMarker>(append("smId", mottakEnhetBlokk.ediLoggId))
                     .and<LogstashMarker>(append("organizationNumber", msgHead.msgInfo.sender.organisation.extractOrganizationNumber()))
             log.info(marker, "Received a SM2013, trying to persist in Joark")
         }
