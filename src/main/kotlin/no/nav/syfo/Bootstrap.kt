@@ -70,7 +70,7 @@ import javax.xml.datatype.XMLGregorianCalendar
 import kotlin.reflect.KClass
 
 val jaxBContext: JAXBContext = JAXBContext.newInstance(XMLEIFellesformat::class.java, XMLMsgHead::class.java,
-        XMLMottakenhetBlokk::class.java)
+        XMLMottakenhetBlokk::class.java, HelseOpplysningerArbeidsuforhet::class.java)
 val unmarshaller: Unmarshaller = jaxBContext.createUnmarshaller()
 val marshaller: Marshaller = jaxBContext.createMarshaller()
 
