@@ -15,7 +15,7 @@ class AktoerIdClient(private val endpointUrl: String, private val stsClient: Sts
     }
 
     fun getAktoerIds(personNumbers: List<String>, trackingId: String): Map<String, IdentInfoResult> = runBlocking {
-        client.get<Map<String, IdentInfoResult>>("$endpointUrl/") {
+        client.get<Map<String, IdentInfoResult>>("$endpointUrl/identer") {
             headersOf(
                     "Authorization" to listOf("Bearer ${stsClient.oidcToken()}"),
                     "Nav-Consumer-Id" to listOf("syfosmjoark"),
