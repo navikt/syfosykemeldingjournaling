@@ -33,3 +33,5 @@ fasitResources:
     resourceType: Credential
   - alias: kafka_bootstrap_servers
     resourceType: baseurl
+  - alias: BehandleJournal_v2
+    resourceType: Webserviceendpoint
