@@ -19,7 +19,7 @@ class StsOidcClient(private val stsUrl: String, username: String, password: Stri
         }
     }
 
-    private lateinit var oidcToken: OidcToken
+    private var oidcToken: OidcToken = runBlocking { oidcToken() }
 
     suspend fun oidcToken() = run {
         if (tokenExpires > System.currentTimeMillis()) {
@@ -29,12 +29,10 @@ class StsOidcClient(private val stsUrl: String, username: String, password: Stri
         oidcToken
     }
 
-    private suspend fun newOidcToken(): OidcToken = runBlocking {
-        oidcClient.get<OidcToken>(stsUrl) {
-            parametersOf(
-                    "grant_type" to listOf("client_credentials"),
-                    "scope" to listOf("openid")
-            )
-        }
+    private suspend fun newOidcToken(): OidcToken = oidcClient.get(stsUrl) {
+        parametersOf(
+                "grant_type" to listOf("client_credentials"),
+                "scope" to listOf("openid")
+        )
     }
 }
