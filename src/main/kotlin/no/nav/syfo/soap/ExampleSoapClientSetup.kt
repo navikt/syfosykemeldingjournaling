@@ -35,9 +35,9 @@ fun exampleClientUsernameToken() {
         features.add(LoggingFeature())
         serviceClass = ThisIsNotAWSDL::class.java
         outInterceptors.add(WSS4JOutInterceptor(mapOf(
-                WSHandlerConstants.USER to env.srvsykemeldingjournalingUsername,
+                WSHandlerConstants.USER to env.srvSyfoSmJoarkUsername,
                 WSHandlerConstants.PW_CALLBACK_REF to CallbackHandler {
-                    (it[0] as WSPasswordCallback).password = env.srvsykemeldingjournalingPassword
+                    (it[0] as WSPasswordCallback).password = env.srvSyfoSmJoarkPassword
                 },
                 WSHandlerConstants.ACTION to WSHandlerConstants.USERNAME_TOKEN,
                 WSHandlerConstants.PASSWORD_TYPE to WSConstants.PW_TEXT
