@@ -25,8 +25,8 @@ object KafkaITSpek: Spek({
 
     val env = Environment(
             applicationPort = getRandomPort(),
-            srvsykemeldingjournalingUsername = "unused",
-            srvsykemeldingjournalingPassword = "unused",
+            srvSyfoSmJoarkUsername = "unused",
+            srvSyfoSmJoarkPassword = "unused",
             kafkaBootstrapServers = embeddedEnvironment.brokersURL
     )
     val producer = KafkaProducer<String, String>(readProducerConfig(env, StringSerializer::class).apply {

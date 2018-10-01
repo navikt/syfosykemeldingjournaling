@@ -150,13 +150,13 @@ suspend fun onJournalRequest(
     val logValues = arrayOf(
             keyValue("msgId", msgId),
             keyValue("smId", receivingUnitBlock.ediLoggId),
-            keyValue("orgNr", organisation.extractorganisationNumber())
+            keyValue("orgNr", organisation.extractOrganisationNumber())
     )
     val logKeys = logValues.joinToString(prefix = "(", postfix = ")", separator = ", ") { "{}" }
     log.info("Received a SM2013, trying to persist in Joark $logKeys", logValues)
 
     val saksId = UUID.randomUUID().toString()
-    val healthInformation = extractHelseopplysninger(msgHead)
+    val healthInformation = extractHealthInformation(msgHead)
     val ident = healthInformation.pasient.fodselsnummer.id
 
     val aktoerId = aktoerIdClient.getAktoerIds(listOf(ident), msgId)[ident]!!
@@ -183,12 +183,14 @@ suspend fun onJournalRequest(
         it.toByteArray()
     }
 
-    val journalpost = createJournalpost(behandleJournalV2, organisation, ident, saksId, sm2013, pdf).await()
+    val journalpost = createJournalpost(behandleJournalV2, organisation.organisationName,
+            organisation.extractOrganisationNumber()!!, ident, saksId, sm2013, pdf).await()
 }
 
 suspend fun createJournalpost(
     behandleJournalV2: BehandleJournalV2,
-    organisation: XMLOrganisation,
+    organisationName: String,
+    organisationNumber: String,
     userPersonNumber: String,
     caseId: String,
     sm2013: ByteArray,
@@ -206,8 +208,8 @@ suspend fun createJournalpost(
                     .withOpprettetAvNavn("SyfoSMSak")
                     .withInnhold("Sykemelding")
                     .withEksternPart(EksternPart()
-                            .withNavn(organisation.organisationName)
-                            .withEksternAktoer(Organisasjon().withOrgnummer(organisation.extractorganisationNumber()))
+                            .withNavn(organisationName)
+                            .withEksternAktoer(Organisasjon().withOrgnummer(organisationNumber))
                     )
                     .withGjelderSak(Sak().withSaksId(caseId).withFagsystemkode(GOSYS))
                     .withMottattDato(now())
@@ -249,7 +251,7 @@ fun createPdfPayload(
     TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
 }
 
-fun XMLOrganisation.extractorganisationNumber(): String? = ident.find { it.typeId.v == "ENH" }?.id
+fun XMLOrganisation.extractOrganisationNumber(): String? = ident.find { it.typeId.v == "ENH" }?.id
 
 fun Application.initRouting(applicationState: ApplicationState) {
     routing {
@@ -266,7 +268,7 @@ fun Application.initRouting(applicationState: ApplicationState) {
 
 inline fun <reified T> XMLEIFellesformat.get(): T = any.find { it is T } as T
 inline fun <reified T> XMLRefDoc.Content.get() = this.any.find { it is T } as T
-fun extractHelseopplysninger(msgHead: XMLMsgHead) = msgHead.document[0].refDoc.content.get<HelseOpplysningerArbeidsuforhet>()
+fun extractHealthInformation(msgHead: XMLMsgHead) = msgHead.document[0].refDoc.content.get<HelseOpplysningerArbeidsuforhet>()
 
 
 fun readConsumerConfig(
