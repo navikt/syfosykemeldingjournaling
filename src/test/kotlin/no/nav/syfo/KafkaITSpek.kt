@@ -27,7 +27,8 @@ object KafkaITSpek: Spek({
             applicationPort = getRandomPort(),
             srvSyfoSmJoarkUsername = "unused",
             srvSyfoSmJoarkPassword = "unused",
-            kafkaBootstrapServers = embeddedEnvironment.brokersURL
+            kafkaBootstrapServers = embeddedEnvironment.brokersURL,
+            legacySecurityTokenServiceUrl = "unused"
     )
     val producer = KafkaProducer<String, String>(readProducerConfig(env, StringSerializer::class).apply {
         remove("security.protocol")

@@ -10,7 +10,7 @@ data class Environment(
         val kafkaBootstrapServers: String = getEnvVar("KAFKA_BOOTSTRAP_SERVERS_URL"),
         val smpapirAutomaticHandlingTopic: String = getEnvVar("KAFKA_SM2013_JOURNALING_TOPIC", "privat-syfo-smpapir-automatiskBehandling"),
         val sm2013AutomaticHandlingTopic: String = getEnvVar("KAFKA_SM2013_JOURNALING_TOPIC", "privat-syfo-sm2013-automatiskBehandling"),
-        val securityTokenServiceUrl: String = getEnvVar("SECURITY_TOKEN_SERVICE_URL", "http://security-token-service"),
+        val legacySecurityTokenServiceUrl: String = getEnvVar("SECURITY_TOKEN_SERVICE_URL", "https://sts-q1.preprod.local/SecurityTokenServiceProvider/"),
         val aktoerregisterV1Url: String = getEnvVar("AKTOERREGISTER_API_V1", "https://app-q1.adeo.no/aktoerregister/api/v1"),
         val behandleJournalV2EndpointURL: String = getEnvVar("BEHANDLEJOURNAL_V2_ENDPOINTURL")
 )

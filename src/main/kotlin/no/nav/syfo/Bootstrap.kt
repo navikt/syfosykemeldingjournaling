@@ -96,7 +96,7 @@ fun main(args: Array<String>) = runBlocking<Unit> {
         initRouting(applicationState)
     }.start(wait = false)
 
-    val stsClient = StsOidcClient(env.securityTokenServiceUrl, env.srvSyfoSmJoarkUsername, env.srvSyfoSmJoarkPassword)
+    val stsClient = StsOidcClient(env.srvSyfoSmJoarkUsername, env.srvSyfoSmJoarkPassword)
 
     if (log.isDebugEnabled) {
         log.debug("Call from STS returned {}", keyValue("oidcToken", stsClient.oidcToken()))
@@ -108,7 +108,7 @@ fun main(args: Array<String>) = runBlocking<Unit> {
         features.add(LoggingFeature())
         serviceClass = BehandleJournalV2::class.java
     }.create() as BehandleJournalV2
-    configureSTSFor(behandleJournalV2, env.srvSyfoSmJoarkUsername, env.srvSyfoSmJoarkPassword, env.securityTokenServiceUrl)
+    configureSTSFor(behandleJournalV2, env.srvSyfoSmJoarkUsername, env.srvSyfoSmJoarkPassword, env.legacySecurityTokenServiceUrl)
 
     try {
         val consumerProperties = readConsumerConfig(env, StringDeserializer::class)
