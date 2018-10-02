@@ -21,10 +21,10 @@ class AktoerIdClient(private val endpointUrl: String, private val stsClient: Sts
         client.get("$endpointUrl/identer") {
             val oidcToken = stsClient.oidcToken()
             headers {
-                append("Authorization", "Bearer $oidcToken")
+                append("Authorization", "Bearer ${oidcToken.access_token}")
                 append("Nav-Consumer-Id", "syfosmjoark")
                 append("Nav-Call-Id", trackingId)
-                append("Nav-Personidenter", personNumbers.joinToString(separator = ","))
+                appendAll("Nav-Personidenter", personNumbers)
             }
             parameter("gjeldende", "true")
             parameter("identgruppe", "AktoerId")
