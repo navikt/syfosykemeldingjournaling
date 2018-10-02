@@ -11,6 +11,6 @@ data class IdentInfo(
 
 @Serializable
 data class IdentInfoResult(
-    val identer: List<IdentInfo>,
-    val feilmelding: String
+    val identer: List<IdentInfo>?,
+    val feilmelding: String?
 )
