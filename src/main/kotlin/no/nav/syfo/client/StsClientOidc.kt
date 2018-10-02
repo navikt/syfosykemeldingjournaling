@@ -25,15 +25,15 @@ class StsOidcClient(private val stsUrl: String, username: String, password: Stri
 
     private var oidcToken: OidcToken = runBlocking { oidcToken() }
 
-    suspend fun oidcToken() = run {
+    suspend fun oidcToken(): OidcToken {
         if (tokenExpires < System.currentTimeMillis()) {
             oidcToken = newOidcToken()
             tokenExpires = System.currentTimeMillis() + (oidcToken.expires_in - 600) * 1000
         }
-        oidcToken
+        return oidcToken
     }
 
-    private suspend fun newOidcToken(): OidcToken = oidcClient.get(stsUrl) {
+    private suspend fun newOidcToken(): OidcToken = oidcClient.get("$stsUrl/rest/v1/sts/token") {
         parameter("grant_type", "client_credentials")
         parameter("scope", "openid")
     }
