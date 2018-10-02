@@ -10,8 +10,6 @@ import io.ktor.client.request.accept
 import io.ktor.client.request.get
 import io.ktor.client.request.parameter
 import io.ktor.http.ContentType
-import io.ktor.http.contentType
-import io.ktor.http.parametersOf
 import kotlinx.coroutines.experimental.runBlocking
 import no.nav.syfo.model.OidcToken
 
@@ -39,7 +37,6 @@ class StsOidcClient(username: String, password: String) {
 
     private suspend fun newOidcToken(): OidcToken = oidcClient.get("http://security-token-service/rest/v1/sts/token") {
         accept(ContentType.Application.Json)
-        contentType(ContentType.Application.FormUrlEncoded)
         parameter("grant_type", "client_credentials")
         parameter("scope", "openid")
     }
