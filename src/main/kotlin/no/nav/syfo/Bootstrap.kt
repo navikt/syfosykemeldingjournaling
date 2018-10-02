@@ -96,6 +96,11 @@ fun main(args: Array<String>) = runBlocking<Unit> {
     }.start(wait = false)
 
     val stsClient = StsOidcClient(env.securityTokenServiceUrl, env.srvSyfoSmJoarkUsername, env.srvSyfoSmJoarkPassword)
+
+    if (log.isDebugEnabled) {
+        log.debug("Call from STS returned {}", keyValue("oidcToken", stsClient.oidcToken()))
+    }
+
     val aktoerIdClient = AktoerIdClient(env.aktoerregisterV1Url, stsClient)
     val behandleJournalV2 = JaxWsProxyFactoryBean().apply {
         address = env.behandleJournalV2EndpointURL
