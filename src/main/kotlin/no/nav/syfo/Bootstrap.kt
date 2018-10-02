@@ -5,6 +5,7 @@ import io.ktor.client.HttpClient
 import io.ktor.client.call.call
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.features.json.JsonFeature
+import io.ktor.client.features.json.serializer.KotlinxSerializer
 import io.ktor.client.request.post
 import io.ktor.client.response.readBytes
 import io.ktor.http.HttpMethod
@@ -81,7 +82,9 @@ val datatypeFactory: DatatypeFactory = DatatypeFactory.newInstance()
 data class ApplicationState(var running: Boolean = true, var initialized: Boolean = false)
 
 val httpClient = HttpClient(CIO) {
-    install(JsonFeature)
+    install(JsonFeature) {
+        serializer = KotlinxSerializer()
+    }
 }
 
 fun main(args: Array<String>) = runBlocking<Unit> {
