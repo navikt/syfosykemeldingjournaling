@@ -179,6 +179,7 @@ suspend fun onJournalRequest(
                 fagsakNr = saksId
         )
     }
+    log.info("Created a case $logKeys", *logValues)
 
     val pdfPayload = createPdfPayload(fellesformat, msgHead, receivingUnitBlock, healthInformation)
 
@@ -186,6 +187,7 @@ suspend fun onJournalRequest(
         method = HttpMethod.Post
         body = pdfPayload
     }.response.readBytes()
+    log.info("PDF generated $logKeys", *logValues)
 
     val sm2013 = ByteArrayOutputStream().use {
         marshaller.marshal(healthInformation, it)
