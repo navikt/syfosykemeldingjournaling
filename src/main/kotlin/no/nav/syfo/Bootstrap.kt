@@ -171,6 +171,7 @@ suspend fun onJournalRequest(
     val ident = healthInformation.pasient.fodselsnummer.id
 
     val aktoerId = aktoerIdClient.getAktoerIds(listOf(ident), msgId)[ident]!!
+    log.debug("Query for aktoerId returned result {} $logKeys", aktoerId.identer!!.first().ident, *logValues)
 
     httpClient.post<Unit>("http://sak/api/v1/saker") {
         contentType(ContentType.Application.Json)
