@@ -188,6 +188,8 @@ suspend fun onJournalRequest(
 
     val journalpost = createJournalpost(behandleJournalV2, organisation.organisationName,
             organisation.extractOrganisationNumber()!!, ident, saksId, sm2013, pdf).await()
+
+    log.info("Message successfully persisted in Joark {} $logKeys", keyValue("journalpostId", journalpost.journalpostId), *logValues)
 }
 
 suspend fun createJournalpost(
