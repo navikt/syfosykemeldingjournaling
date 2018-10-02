@@ -174,7 +174,7 @@ suspend fun onJournalRequest(
         body = OpprettSak(
                 tema = "SYK",
                 applikasjon = "syfomottak",
-                aktoerId = aktoerId.identer.first().ident,
+                aktoerId = aktoerId.identer!!.first().ident,
                 orgnr = null,
                 fagsakNr = saksId
         )
