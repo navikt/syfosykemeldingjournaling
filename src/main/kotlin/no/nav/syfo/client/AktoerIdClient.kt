@@ -24,7 +24,7 @@ class AktoerIdClient(private val endpointUrl: String, private val stsClient: Sts
                 append("Authorization", "Bearer $oidcToken")
                 append("Nav-Consumer-Id", "syfosmjoark")
                 append("Nav-Call-Id", trackingId)
-                appendAll("Nav-Personidenter", personNumbers)
+                append("Nav-Personidenter", personNumbers.joinToString(separator = ","))
             }
             parameter("gjeldende", "true")
             parameter("identgruppe", "AktoerId")
