@@ -9,7 +9,9 @@ import io.ktor.client.features.json.JsonFeature
 import io.ktor.client.features.json.serializer.KotlinxSerializer
 import io.ktor.client.request.post
 import io.ktor.client.response.readBytes
+import io.ktor.http.ContentType
 import io.ktor.http.HttpMethod
+import io.ktor.http.contentType
 import io.ktor.routing.routing
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
@@ -171,6 +173,7 @@ suspend fun onJournalRequest(
     val aktoerId = aktoerIdClient.getAktoerIds(listOf(ident), msgId)[ident]!!
 
     httpClient.post<Unit>("http://sak/api/v1/saker") {
+        contentType(ContentType.Application.Json)
         body = OpprettSak(
                 tema = "SYK",
                 applikasjon = "syfomottak",
