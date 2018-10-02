@@ -26,7 +26,7 @@ class StsOidcClient(private val stsUrl: String, username: String, password: Stri
     private var oidcToken: OidcToken = runBlocking { oidcToken() }
 
     suspend fun oidcToken() = run {
-        if (tokenExpires > System.currentTimeMillis()) {
+        if (tokenExpires < System.currentTimeMillis()) {
             oidcToken = newOidcToken()
             tokenExpires = System.currentTimeMillis() + (oidcToken.expires_in - 600) * 1000
         }
