@@ -2,6 +2,7 @@ package no.nav.syfo.client
 
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
+import io.ktor.client.features.json.JacksonSerializer
 import io.ktor.client.features.json.JsonFeature
 import io.ktor.client.features.json.serializer.KotlinxSerializer
 import io.ktor.client.request.get
@@ -12,7 +13,7 @@ import no.nav.syfo.model.IdentInfoResult
 class AktoerIdClient(private val endpointUrl: String, private val stsClient: StsOidcClient) {
     private val client = HttpClient(CIO) {
         install(JsonFeature) {
-            serializer = KotlinxSerializer()
+            serializer = JacksonSerializer()
         }
     }
 

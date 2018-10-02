@@ -3,6 +3,7 @@ package no.nav.syfo.client
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.features.auth.basic.BasicAuth
+import io.ktor.client.features.json.JacksonSerializer
 import io.ktor.client.features.json.JsonFeature
 import io.ktor.client.features.json.serializer.KotlinxSerializer
 import io.ktor.client.request.get
@@ -15,7 +16,7 @@ class StsOidcClient(private val stsUrl: String, username: String, password: Stri
     private var tokenExpires: Long = 0
     private val oidcClient = HttpClient(CIO) {
         install(JsonFeature) {
-            serializer = KotlinxSerializer()
+            serializer = JacksonSerializer()
         }
         install(BasicAuth) {
             this.username = username

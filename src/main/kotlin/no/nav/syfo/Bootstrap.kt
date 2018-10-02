@@ -4,6 +4,7 @@ import io.ktor.application.Application
 import io.ktor.client.HttpClient
 import io.ktor.client.call.call
 import io.ktor.client.engine.cio.CIO
+import io.ktor.client.features.json.JacksonSerializer
 import io.ktor.client.features.json.JsonFeature
 import io.ktor.client.features.json.serializer.KotlinxSerializer
 import io.ktor.client.request.post
@@ -83,7 +84,7 @@ data class ApplicationState(var running: Boolean = true, var initialized: Boolea
 
 val httpClient = HttpClient(CIO) {
     install(JsonFeature) {
-        serializer = KotlinxSerializer()
+        serializer = JacksonSerializer()
     }
 }
 
