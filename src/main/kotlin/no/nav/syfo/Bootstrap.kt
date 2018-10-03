@@ -194,6 +194,7 @@ suspend fun onJournalRequest(
 
     // TODO: "http://pdf-gen/api/v1/genpdf/syfosm/sykemelding"
     val pdf: ByteArray = httpClient.call("http://pdf-gen/api/v1/genpdf/pale/fagmelding") {
+        contentType(ContentType.Application.Json)
         method = HttpMethod.Post
         body = pdfPayload
     }.response.readBytes()
