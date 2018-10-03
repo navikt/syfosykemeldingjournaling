@@ -141,8 +141,13 @@ suspend fun listen(
 ) {
     while (applicationState.running) {
         consumer.poll(Duration.ofMillis(0)).forEach {
-            val fellesformat = unmarshaller.unmarshal(StringReader(it.value())) as XMLEIFellesformat
-            onJournalRequest(fellesformat, aktoerIdClient, behandleJournalV2)
+            try {
+                val fellesformat = unmarshaller.unmarshal(StringReader(it.value())) as XMLEIFellesformat
+                onJournalRequest(fellesformat, aktoerIdClient, behandleJournalV2)
+            } catch (e: Exception) {
+                log.error("Error occurred while trying to handle journaling request", e)
+                throw e
+            }
         }
         delay(100)
     }
@@ -178,7 +183,7 @@ suspend fun onJournalRequest(
         body = OpprettSak(
                 tema = "SYK",
                 applikasjon = "syfomottak",
-                aktoerId = aktoerId.identer!!.first().ident,
+                aktoerId = aktoerId.identer.first().ident,
                 orgnr = null,
                 fagsakNr = saksId
         )
