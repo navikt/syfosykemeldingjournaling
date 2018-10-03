@@ -192,7 +192,8 @@ suspend fun onJournalRequest(
 
     val pdfPayload = createPdfPayload(fellesformat, msgHead, receivingUnitBlock, healthInformation)
 
-    val pdf: ByteArray = httpClient.call("http://pdf-gen/api/v1/genpdf/syfosm/sykemelding") {
+    // TODO: "http://pdf-gen/api/v1/genpdf/syfosm/sykemelding"
+    val pdf: ByteArray = httpClient.call("http://pdf-gen/api/v1/genpdf/pale/fagmelding") {
         method = HttpMethod.Post
         body = pdfPayload
     }.response.readBytes()
@@ -269,9 +270,9 @@ fun createPdfPayload(
     msgHead: XMLMsgHead,
     receivingUnitBlock: XMLMottakenhetBlokk,
     healthInformation: HelseOpplysningerArbeidsuforhet
-): PdfPayload {
-    TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
-}
+): PdfPayload = PdfPayload(
+        ediLoggId = fellesformat.get<XMLMottakenhetBlokk>().ediLoggId
+)
 
 fun XMLOrganisation.extractOrganisationNumber(): String? = ident.find { it.typeId.v == "ENH" }?.id
 
