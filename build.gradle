@@ -28,6 +28,10 @@ plugins {
 
 jar.manifest.attributes("Main-Class" : 'no.nav.syfo.BootstrapKt')
 
+shadowJar {
+    mergeServiceFiles("META-INF/cxf")
+}
+
 group 'no.nav.syfo'
 version '1.0-SNAPSHOT'
 
