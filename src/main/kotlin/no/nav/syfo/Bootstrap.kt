@@ -178,7 +178,7 @@ suspend fun onJournalRequest(
     val aktoerId = aktoerIdClient.getAktoerIds(listOf(ident), msgId)[ident]!!
     log.debug("Query for aktoerId returned result {} $logKeys", aktoerId.identer!!.first().ident, *logValues)
 
-    httpClient.post<Unit>("http://sak/api/v1/saker") {
+    val sakResponse  = httpClient.post<String>("http://sak/api/v1/saker") {
         contentType(ContentType.Application.Json)
         body = OpprettSak(
                 tema = "SYK",
@@ -188,6 +188,7 @@ suspend fun onJournalRequest(
                 fagsakNr = saksId
         )
     }
+    log.debug("Response from request to create sak, {}", keyValue("response", sakResponse))
     log.info("Created a case $logKeys", *logValues)
 
     val pdfPayload = createPdfPayload(fellesformat, msgHead, receivingUnitBlock, healthInformation)

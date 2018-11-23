@@ -23,10 +23,10 @@ buildscript {
 plugins {
     id 'org.jetbrains.kotlin.jvm' version '1.2.51'
     id("com.diffplug.gradle.spotless") version "3.14.0"
-    id 'application'
+    id("com.github.johnrengelman.shadow") version "4.0.3"
 }
 
-mainClassName = 'no.nav.syfo.BootstrapKt'
+jar.manifest.attributes("Main-Class" : 'no.nav.syfo.BootstrapKt')
 
 group 'no.nav.syfo'
 version '1.0-SNAPSHOT'
@@ -40,19 +40,6 @@ repositories {
     maven { url 'https://repo.adeo.no/repository/maven-releases/' }
     maven { url 'https://repo.adeo.no/repository/maven-snapshots/' }
     maven { url "https://dl.bintray.com/spekframework/spek-dev" }
-}
-
-applicationDefaultJvmArgs = [
-        '-Djavax.net.ssl.trustStore=${NAV_TRUSTSTORE_PATH}',
-        '-Djavax.net.ssl.trustStorePassword=${NAV_TRUSTSTORE_PASSWORD}',
-        '-Djavax.net.ssl.trustStoreType=JKS'
-]
-
-startScripts {
-    doLast {
-        unixScript.text = unixScript.text.replace('\\${NAV_TRUSTSTORE_PATH}', '${NAV_TRUSTSTORE_PATH}')
-        unixScript.text = unixScript.text.replace('\\${NAV_TRUSTSTORE_PASSWORD}', '${NAV_TRUSTSTORE_PASSWORD}')
-    }
 }
 
 test {
