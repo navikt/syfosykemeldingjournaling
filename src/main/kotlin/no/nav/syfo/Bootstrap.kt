@@ -1,12 +1,15 @@
 package no.nav.syfo
 
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
+import com.fasterxml.jackson.module.kotlin.readValue
+import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import io.ktor.application.Application
 import io.ktor.client.HttpClient
 import io.ktor.client.call.call
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.features.json.JacksonSerializer
 import io.ktor.client.features.json.JsonFeature
-import io.ktor.client.features.json.serializer.KotlinxSerializer
 import io.ktor.client.request.post
 import io.ktor.client.response.readBytes
 import io.ktor.http.ContentType
@@ -15,21 +18,17 @@ import io.ktor.http.contentType
 import io.ktor.routing.routing
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
-import kotlinx.coroutines.experimental.Deferred
-import kotlinx.coroutines.experimental.async
-import kotlinx.coroutines.experimental.delay
-import kotlinx.coroutines.experimental.launch
-import kotlinx.coroutines.experimental.runBlocking
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.async
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import net.logstash.logback.argument.StructuredArguments.keyValue
-import no.kith.xmlstds.msghead._2006_05_24.XMLMsgHead
-import no.kith.xmlstds.msghead._2006_05_24.XMLOrganisation
-import no.kith.xmlstds.msghead._2006_05_24.XMLRefDoc
-import no.nav.helse.sm2013.HelseOpplysningerArbeidsuforhet
 import no.nav.syfo.api.registerNaisApi
-import no.nav.syfo.client.AktoerIdClient
-import no.nav.syfo.client.StsOidcClient
 import no.nav.syfo.model.OpprettSak
 import no.nav.syfo.model.PdfPayload
+import no.nav.syfo.model.ReceivedSykmelding
 import no.nav.syfo.soap.configureSTSFor
 import no.nav.tjeneste.virksomhet.behandlejournal.v2.binding.BehandleJournalV2
 import no.nav.tjeneste.virksomhet.behandlejournal.v2.informasjon.behandlejournal.Arkivfiltyper
@@ -49,8 +48,6 @@ import no.nav.tjeneste.virksomhet.behandlejournal.v2.informasjon.journalfoerinng
 import no.nav.tjeneste.virksomhet.behandlejournal.v2.informasjon.journalfoerinngaaendehenvendelse.Journalpost
 import no.nav.tjeneste.virksomhet.behandlejournal.v2.meldinger.JournalfoerInngaaendeHenvendelseRequest
 import no.nav.tjeneste.virksomhet.behandlejournal.v2.meldinger.JournalfoerInngaaendeHenvendelseResponse
-import no.trygdeetaten.xml.eiff._1.XMLEIFellesformat
-import no.trygdeetaten.xml.eiff._1.XMLMottakenhetBlokk
 import org.apache.cxf.ext.logging.LoggingFeature
 import org.apache.cxf.jaxws.JaxWsProxyFactoryBean
 import org.apache.kafka.clients.consumer.KafkaConsumer
@@ -58,25 +55,20 @@ import org.apache.kafka.common.serialization.Deserializer
 import org.apache.kafka.common.serialization.StringDeserializer
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import java.io.ByteArrayOutputStream
-import java.io.StringReader
 import java.time.Duration
 import java.time.ZonedDateTime
 import java.util.GregorianCalendar
 import java.util.Properties
 import java.util.UUID
 import java.util.concurrent.TimeUnit
-import javax.xml.bind.JAXBContext
-import javax.xml.bind.Marshaller
-import javax.xml.bind.Unmarshaller
 import javax.xml.datatype.DatatypeFactory
 import javax.xml.datatype.XMLGregorianCalendar
 import kotlin.reflect.KClass
 
-val jaxBContext: JAXBContext = JAXBContext.newInstance(XMLEIFellesformat::class.java, XMLMsgHead::class.java,
-        XMLMottakenhetBlokk::class.java, HelseOpplysningerArbeidsuforhet::class.java)
-val unmarshaller: Unmarshaller = jaxBContext.createUnmarshaller()
-val marshaller: Marshaller = jaxBContext.createMarshaller()
+val objectMapper: ObjectMapper = ObjectMapper().apply {
+    registerKotlinModule()
+    registerModule(JavaTimeModule())
+}
 
 val log: Logger = LoggerFactory.getLogger("no.nav.syfo.smjoark")
 
@@ -90,7 +82,7 @@ val httpClient = HttpClient(CIO) {
     }
 }
 
-fun main(args: Array<String>) = runBlocking<Unit> {
+fun main(args: Array<String>) = runBlocking {
     val env = Environment()
     val applicationState = ApplicationState()
 
@@ -98,13 +90,6 @@ fun main(args: Array<String>) = runBlocking<Unit> {
         initRouting(applicationState)
     }.start(wait = false)
 
-    val stsClient = StsOidcClient(env.srvSyfoSmJoarkUsername, env.srvSyfoSmJoarkPassword)
-
-    if (log.isDebugEnabled) {
-        log.debug("Call from STS returned {}", keyValue("oidcToken", stsClient.oidcToken()))
-    }
-
-    val aktoerIdClient = AktoerIdClient(env.aktoerregisterV1Url, stsClient)
     val behandleJournalV2 = JaxWsProxyFactoryBean().apply {
         address = env.behandleJournalV2EndpointURL
         features.add(LoggingFeature())
@@ -118,7 +103,7 @@ fun main(args: Array<String>) = runBlocking<Unit> {
             launch {
                 val consumer = KafkaConsumer<String, String>(consumerProperties)
                 consumer.subscribe(listOf(env.sm2013AutomaticHandlingTopic, env.smpapirAutomaticHandlingTopic))
-                listen(consumer, aktoerIdClient, behandleJournalV2, applicationState)
+                listen(consumer, behandleJournalV2, applicationState)
             }
         }.toList()
 
@@ -133,17 +118,16 @@ fun main(args: Array<String>) = runBlocking<Unit> {
     }
 }
 
-suspend fun listen(
+suspend fun CoroutineScope.listen(
     consumer: KafkaConsumer<String, String>,
-    aktoerIdClient: AktoerIdClient,
     behandleJournalV2: BehandleJournalV2,
     applicationState: ApplicationState
 ) {
     while (applicationState.running) {
         consumer.poll(Duration.ofMillis(0)).forEach {
             try {
-                val fellesformat = unmarshaller.unmarshal(StringReader(it.value())) as XMLEIFellesformat
-                onJournalRequest(fellesformat, aktoerIdClient, behandleJournalV2)
+                val receivedSykmelding: ReceivedSykmelding = objectMapper.readValue(it.value())
+                onJournalRequest(receivedSykmelding, behandleJournalV2)
             } catch (e: Exception) {
                 log.error("Error occurred while trying to handle journaling request", e)
                 throw e
@@ -153,37 +137,27 @@ suspend fun listen(
     }
 }
 
-suspend fun onJournalRequest(
-        fellesformat: XMLEIFellesformat,
-        aktoerIdClient: AktoerIdClient,
+suspend fun CoroutineScope.onJournalRequest(
+        receivedSykmelding: ReceivedSykmelding,
         behandleJournalV2: BehandleJournalV2
 ) {
-    val msgHead: XMLMsgHead = fellesformat.get()
-    val receivingUnitBlock: XMLMottakenhetBlokk = fellesformat.get()
-    val msgId = msgHead.msgInfo.msgId
-    val organisation = msgHead.msgInfo.sender.organisation
 
     val logValues = arrayOf(
-            keyValue("msgId", msgId),
-            keyValue("smId", receivingUnitBlock.ediLoggId),
-            keyValue("orgNr", organisation.extractOrganisationNumber())
+            keyValue("msgId", receivedSykmelding.msgId),
+            keyValue("smId", receivedSykmelding.navLogId),
+            keyValue("orgNr", receivedSykmelding.legekontorOrgNr)
     )
     val logKeys = logValues.joinToString(prefix = "(", postfix = ")", separator = ", ") { "{}" }
     log.info("Received a SM2013, trying to persist in Joark $logKeys", logValues)
 
     val saksId = UUID.randomUUID().toString()
-    val healthInformation = extractHealthInformation(msgHead)
-    val ident = healthInformation.pasient.fodselsnummer.id
-
-    val aktoerId = aktoerIdClient.getAktoerIds(listOf(ident), msgId)[ident]!!
-    log.debug("Query for aktoerId returned result {} $logKeys", aktoerId.identer!!.first().ident, *logValues)
 
     val sakResponse  = httpClient.post<String>("http://sak/api/v1/saker") {
         contentType(ContentType.Application.Json)
         body = OpprettSak(
                 tema = "SYK",
                 applikasjon = "syfomottak",
-                aktoerId = aktoerId.identer.first().ident,
+                aktoerId = receivedSykmelding.aktoerIdPasient,
                 orgnr = null,
                 fagsakNr = saksId
         )
@@ -191,7 +165,7 @@ suspend fun onJournalRequest(
     log.debug("Response from request to create sak, {}", keyValue("response", sakResponse))
     log.info("Created a case $logKeys", *logValues)
 
-    val pdfPayload = createPdfPayload(fellesformat, msgHead, receivingUnitBlock, healthInformation)
+    val pdfPayload = createPdfPayload(receivedSykmelding)
 
     // TODO: "http://pdf-gen/api/v1/genpdf/syfosm/sykemelding"
     val pdf: ByteArray = httpClient.call("http://pdf-gen/api/v1/genpdf/pale/fagmelding") {
@@ -201,18 +175,14 @@ suspend fun onJournalRequest(
     }.response.readBytes()
     log.info("PDF generated $logKeys", *logValues)
 
-    val sm2013 = ByteArrayOutputStream().use {
-        marshaller.marshal(healthInformation, it)
-        it.toByteArray()
-    }
-
-    val journalpost = createJournalpost(behandleJournalV2, organisation.organisationName,
-            organisation.extractOrganisationNumber()!!, ident, saksId, sm2013, pdf).await()
+    val journalpost = createJournalpost(behandleJournalV2, receivedSykmelding.legekontorOrgName,
+            receivedSykmelding.legekontorOrgNr, receivedSykmelding.aktoerIdPasient, saksId,
+            objectMapper.writeValueAsBytes(receivedSykmelding.sykmelding), pdf).await()
 
     log.info("Message successfully persisted in Joark {} $logKeys", keyValue("journalpostId", journalpost.journalpostId), *logValues)
 }
 
-suspend fun createJournalpost(
+fun CoroutineScope.createJournalpost(
     behandleJournalV2: BehandleJournalV2,
     organisationName: String,
     organisationNumber: String,
@@ -268,15 +238,10 @@ const val GOSYS = "FS22"
 fun now(): XMLGregorianCalendar = datatypeFactory.newXMLGregorianCalendar(GregorianCalendar.from(ZonedDateTime.now()))
 
 fun createPdfPayload(
-    fellesformat: XMLEIFellesformat,
-    msgHead: XMLMsgHead,
-    receivingUnitBlock: XMLMottakenhetBlokk,
-    healthInformation: HelseOpplysningerArbeidsuforhet
+    receivedSykmelding: ReceivedSykmelding
 ): PdfPayload = PdfPayload(
-        ediLoggId = fellesformat.get<XMLMottakenhetBlokk>().ediLoggId
+        ediLoggId = receivedSykmelding.msgId
 )
-
-fun XMLOrganisation.extractOrganisationNumber(): String? = ident.find { it.typeId.v == "ENH" }?.id
 
 fun Application.initRouting(applicationState: ApplicationState) {
     routing {
@@ -290,10 +255,6 @@ fun Application.initRouting(applicationState: ApplicationState) {
         )
     }
 }
-
-inline fun <reified T> XMLEIFellesformat.get(): T = any.find { it is T } as T
-inline fun <reified T> XMLRefDoc.Content.get() = this.any.find { it is T } as T
-fun extractHealthInformation(msgHead: XMLMsgHead) = msgHead.document[0].refDoc.content.get<HelseOpplysningerArbeidsuforhet>()
 
 
 fun readConsumerConfig(
