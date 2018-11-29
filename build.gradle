@@ -17,6 +17,7 @@ buildscript {
     ext.prometheus_version = '0.5.0'
     ext.saaj_version = '1.4.0'
     ext.spek_version = "2.0.0-rc.1"
+    ext.sykmelding_version = "1.1-SNAPSHOT"
 }
 
 plugins {
@@ -79,7 +80,7 @@ dependencies {
     implementation "org.apache.cxf:cxf-rt-ws-security:$cxf_version"
     implementation "org.apache.kafka:kafka_2.12:$kafka_version"
 
-    implementation "no.nav.helse.xml:sm2013:1.0-SNAPSHOT"
+    implementation "no.nav.helse.xml:sm2013:$sykmelding_version"
     implementation "no.nav.tjenester.fim:nav-fim-behandleJournal-v2-tjenestespesifikasjon:$behandleJournalVersion:jaxws"
 
     // Required for CXF
