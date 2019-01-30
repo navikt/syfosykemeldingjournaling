@@ -200,7 +200,7 @@ fun CoroutineScope.createJournalpost(
                     .withJournalfoerendeEnhetREF(GOSYS)
                     .withKanal(Kommunikasjonskanaler().withValue("NAV_NO"))
                     .withSignatur(Signatur().withSignert(true))
-                    .withArkivtema(Arkivtemaer().withValue("SYK"))
+                    .withArkivtema(Arkivtemaer().withValue("SYM"))
                     .withForBruker(Person().withIdent(NorskIdent().withIdent(userPersonNumber)))
                     .withOpprettetAvNavn("SyfoSMSak")
                     .withInnhold("Sykemelding")
