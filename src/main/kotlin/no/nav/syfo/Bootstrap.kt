@@ -157,7 +157,7 @@ suspend fun CoroutineScope.onJournalRequest(
     val sakResponse  = httpClient.post<String>("http://sak/api/v1/saker") {
         contentType(ContentType.Application.Json)
         body = OpprettSak(
-                tema = "SYK",
+                tema = "SYM",
                 applikasjon = "syfomottak",
                 aktoerId = receivedSykmelding.aktoerIdPasient,
                 orgnr = null,
