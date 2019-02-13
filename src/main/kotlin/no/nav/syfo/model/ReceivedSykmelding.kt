@@ -9,7 +9,9 @@ data class ReceivedSykmelding(
     val aktoerIdLege: String,
     val navLogId: String,
     val msgId: String,
-    val legekontorOrgNr: String,
+    val legekontorOrgNr: String?,
+    val legekontorHerId: String?,
+    val legekontorReshId: String?,
     val legekontorOrgName: String,
     val mottattDato: LocalDateTime
 )
