@@ -187,7 +187,7 @@ suspend fun CoroutineScope.onJournalRequest(
 fun CoroutineScope.createJournalpost(
     behandleJournalV2: BehandleJournalV2,
     organisationName: String,
-    organisationNumber: String,
+    organisationNumber: String?,
     userPersonNumber: String,
     caseId: String,
     sm2013: ByteArray,
