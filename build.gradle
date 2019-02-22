@@ -1,24 +1,20 @@
 buildscript {
-    ext.behandleJournalVersion = '2.3.0'
-    ext.caffeine_version = '2.6.2'
-    ext.coroutines_version = '0.23.4'
-    ext.jackson_version = "2.9.7"
-    ext.jaxws_api_version = '2.2.1'
-    ext.kafka_version = '2.0.0'
-    ext.kafka_embedded_version = '1.0.0'
-    ext.kluent_version = '1.39'
-    ext.ktor_version = '1.0.0'
-    ext.logstash_logback_encoder = '5.2'
+    ext.coroutines_version = '1.1.1'
+    ext.jackson_version = "2.9.8"
+    ext.kafka_version = '2.1.1'
+    ext.kafka_embedded_version = '2.0.2'
+    ext.kluent_version = '1.47'
+    ext.ktor_version = '1.1.3'
+    ext.logstash_logback_encoder = '5.3'
     ext.logback_version = '1.2.3'
-    ext.prometheus_version = '0.5.0'
-    ext.saaj_version = '1.4.0'
-    ext.spek_version = "2.0.0-rc.1"
+    ext.prometheus_version = '0.6.0'
+    ext.spek_version = "2.0.0"
 }
 
 plugins {
-    id 'org.jetbrains.kotlin.jvm' version '1.3.10'
-    id("com.diffplug.gradle.spotless") version "3.14.0"
-    id("com.github.johnrengelman.shadow") version "4.0.3"
+    id 'org.jetbrains.kotlin.jvm' version '1.3.20'
+    id("com.diffplug.gradle.spotless") version "3.18.0"
+    id("com.github.johnrengelman.shadow") version "4.0.4"
 }
 
 jar.manifest.attributes("Main-Class" : 'no.nav.syfo.BootstrapKt')
@@ -62,7 +58,6 @@ dependencies {
     implementation "io.ktor:ktor-client-json-jvm:$ktor_version"
     implementation "io.ktor:ktor-client-auth-basic:$ktor_version"
     implementation "io.ktor:ktor-client-jackson:$ktor_version"
-    implementation "com.github.ben-manes.caffeine:caffeine:$caffeine_version"
 
     implementation "com.fasterxml.jackson.datatype:jackson-datatype-jsr310:$jackson_version"
 

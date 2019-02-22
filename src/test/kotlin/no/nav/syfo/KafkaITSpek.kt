@@ -27,8 +27,7 @@ object KafkaITSpek: Spek({
             applicationPort = getRandomPort(),
             srvSyfoSmJoarkUsername = "unused",
             srvSyfoSmJoarkPassword = "unused",
-            kafkaBootstrapServers = embeddedEnvironment.brokersURL,
-            legacySecurityTokenServiceUrl = "unused"
+            kafkaBootstrapServers = embeddedEnvironment.brokersURL
     )
     val producer = KafkaProducer<String, String>(readProducerConfig(env, StringSerializer::class).apply {
         remove("security.protocol")
@@ -46,7 +45,7 @@ object KafkaITSpek: Spek({
     }
 
     afterGroup {
-        embeddedEnvironment.stop()
+        embeddedEnvironment.tearDown()
     }
 
     describe("Push a message on a topic") {
