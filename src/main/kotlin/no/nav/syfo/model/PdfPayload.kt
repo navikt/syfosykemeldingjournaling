@@ -4,6 +4,13 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class PdfPayload(
-    val ediLoggId: String
-    // TODO: Figure what we need to create a PDF to represent the SM2013
+    val pasient: Pasient,
+    val sykmelding: Sykmelding
+)
+
+data class Pasient(
+    val fornavn: String,
+    val mellomnavn: String?,
+    val etternavn: String,
+    val personnummer: String
 )

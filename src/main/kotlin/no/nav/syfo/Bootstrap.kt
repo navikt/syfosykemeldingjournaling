@@ -27,43 +27,27 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import net.logstash.logback.argument.StructuredArguments.keyValue
 import no.nav.syfo.api.registerNaisApi
+import no.nav.syfo.model.Aktoer
+import no.nav.syfo.model.ArkivSak
+import no.nav.syfo.model.DokumentInfo
+import no.nav.syfo.model.DokumentVariant
+import no.nav.syfo.model.ForsendelseInformasjon
+import no.nav.syfo.model.MottaInngaaendeForsendelse
+import no.nav.syfo.model.MottaInngaandeForsendelseResultat
 import no.nav.syfo.model.OpprettSak
+import no.nav.syfo.model.Pasient
 import no.nav.syfo.model.PdfPayload
 import no.nav.syfo.model.ReceivedSykmelding
-import no.nav.syfo.soap.configureSTSFor
-import no.nav.tjeneste.virksomhet.behandlejournal.v2.binding.BehandleJournalV2
-import no.nav.tjeneste.virksomhet.behandlejournal.v2.informasjon.behandlejournal.Arkivfiltyper
-import no.nav.tjeneste.virksomhet.behandlejournal.v2.informasjon.behandlejournal.Arkivtemaer
-import no.nav.tjeneste.virksomhet.behandlejournal.v2.informasjon.behandlejournal.Dokumenttyper
-import no.nav.tjeneste.virksomhet.behandlejournal.v2.informasjon.behandlejournal.EksternPart
-import no.nav.tjeneste.virksomhet.behandlejournal.v2.informasjon.behandlejournal.Kommunikasjonskanaler
-import no.nav.tjeneste.virksomhet.behandlejournal.v2.informasjon.behandlejournal.NorskIdent
-import no.nav.tjeneste.virksomhet.behandlejournal.v2.informasjon.behandlejournal.Organisasjon
-import no.nav.tjeneste.virksomhet.behandlejournal.v2.informasjon.behandlejournal.Person
-import no.nav.tjeneste.virksomhet.behandlejournal.v2.informasjon.behandlejournal.Sak
-import no.nav.tjeneste.virksomhet.behandlejournal.v2.informasjon.behandlejournal.Signatur
-import no.nav.tjeneste.virksomhet.behandlejournal.v2.informasjon.behandlejournal.StrukturertInnhold
-import no.nav.tjeneste.virksomhet.behandlejournal.v2.informasjon.behandlejournal.Variantformater
-import no.nav.tjeneste.virksomhet.behandlejournal.v2.informasjon.journalfoerinngaaendehenvendelse.DokumentinfoRelasjon
-import no.nav.tjeneste.virksomhet.behandlejournal.v2.informasjon.journalfoerinngaaendehenvendelse.JournalfoertDokumentInfo
-import no.nav.tjeneste.virksomhet.behandlejournal.v2.informasjon.journalfoerinngaaendehenvendelse.Journalpost
-import no.nav.tjeneste.virksomhet.behandlejournal.v2.meldinger.JournalfoerInngaaendeHenvendelseRequest
-import no.nav.tjeneste.virksomhet.behandlejournal.v2.meldinger.JournalfoerInngaaendeHenvendelseResponse
-import org.apache.cxf.ext.logging.LoggingFeature
-import org.apache.cxf.jaxws.JaxWsProxyFactoryBean
 import org.apache.kafka.clients.consumer.KafkaConsumer
 import org.apache.kafka.common.serialization.Deserializer
 import org.apache.kafka.common.serialization.StringDeserializer
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.time.Duration
-import java.time.ZonedDateTime
-import java.util.GregorianCalendar
+import java.time.LocalDateTime
 import java.util.Properties
 import java.util.UUID
 import java.util.concurrent.TimeUnit
-import javax.xml.datatype.DatatypeFactory
-import javax.xml.datatype.XMLGregorianCalendar
 import kotlin.reflect.KClass
 
 val objectMapper: ObjectMapper = ObjectMapper().apply {
@@ -74,8 +58,6 @@ val objectMapper: ObjectMapper = ObjectMapper().apply {
 
 val log: Logger = LoggerFactory.getLogger("no.nav.syfo.smjoark")
 
-val datatypeFactory: DatatypeFactory = DatatypeFactory.newInstance()
-
 data class ApplicationState(var running: Boolean = true, var initialized: Boolean = false)
 
 val httpClient = HttpClient(CIO) {
@@ -84,7 +66,7 @@ val httpClient = HttpClient(CIO) {
     }
 }
 
-fun main(args: Array<String>) = runBlocking {
+fun main() = runBlocking {
     val env = Environment()
     val applicationState = ApplicationState()
 
@@ -92,20 +74,13 @@ fun main(args: Array<String>) = runBlocking {
         initRouting(applicationState)
     }.start(wait = false)
 
-    val behandleJournalV2 = JaxWsProxyFactoryBean().apply {
-        address = env.behandleJournalV2EndpointURL
-        features.add(LoggingFeature())
-        serviceClass = BehandleJournalV2::class.java
-    }.create() as BehandleJournalV2
-    configureSTSFor(behandleJournalV2, env.srvSyfoSmJoarkUsername, env.srvSyfoSmJoarkPassword, env.legacySecurityTokenServiceUrl)
-
     try {
         val consumerProperties = readConsumerConfig(env, StringDeserializer::class)
         val applicationListeners = (1..env.applicationThreads).map {
             launch {
                 val consumer = KafkaConsumer<String, String>(consumerProperties)
                 consumer.subscribe(listOf(env.sm2013AutomaticHandlingTopic, env.smpapirAutomaticHandlingTopic))
-                listen(consumer, behandleJournalV2, applicationState)
+                listen(consumer, applicationState)
             }
         }.toList()
 
@@ -120,16 +95,15 @@ fun main(args: Array<String>) = runBlocking {
     }
 }
 
-suspend fun CoroutineScope.listen(
-    consumer: KafkaConsumer<String, String>,
-    behandleJournalV2: BehandleJournalV2,
-    applicationState: ApplicationState
+suspend fun listen(
+        consumer: KafkaConsumer<String, String>,
+        applicationState: ApplicationState
 ) {
     while (applicationState.running) {
         consumer.poll(Duration.ofMillis(0)).forEach {
             try {
                 val receivedSykmelding: ReceivedSykmelding = objectMapper.readValue(it.value())
-                onJournalRequest(receivedSykmelding, behandleJournalV2)
+                onJournalRequest(receivedSykmelding)
             } catch (e: Exception) {
                 log.error("Error occurred while trying to handle journaling request", e)
                 throw e
@@ -139,10 +113,7 @@ suspend fun CoroutineScope.listen(
     }
 }
 
-suspend fun CoroutineScope.onJournalRequest(
-        receivedSykmelding: ReceivedSykmelding,
-        behandleJournalV2: BehandleJournalV2
-) {
+suspend fun onJournalRequest(receivedSykmelding: ReceivedSykmelding) {
 
     val logValues = arrayOf(
             keyValue("msgId", receivedSykmelding.msgId),
@@ -159,7 +130,7 @@ suspend fun CoroutineScope.onJournalRequest(
         body = OpprettSak(
                 tema = "SYM",
                 applikasjon = "syfomottak",
-                aktoerId = receivedSykmelding.aktoerIdPasient,
+                aktoerId = receivedSykmelding.sykmelding.pasientAktoerId,
                 orgnr = null,
                 fagsakNr = saksId
         )
@@ -169,80 +140,83 @@ suspend fun CoroutineScope.onJournalRequest(
 
     val pdfPayload = createPdfPayload(receivedSykmelding)
 
-    // TODO: "http://pdf-gen/api/v1/genpdf/syfosm/sykemelding"
-    val pdf: ByteArray = httpClient.call("http://pdf-gen/api/v1/genpdf/pale/fagmelding") {
+    val pdf: ByteArray = httpClient.call("http://pdf-gen/api/v1/genpdf/syfosm/syfosm") {
         contentType(ContentType.Application.Json)
         method = HttpMethod.Post
         body = pdfPayload
     }.response.readBytes()
     log.info("PDF generated $logKeys", *logValues)
 
-    val journalpost = createJournalpost(behandleJournalV2, receivedSykmelding.legekontorOrgName,
-            receivedSykmelding.legekontorOrgNr, receivedSykmelding.aktoerIdPasient, saksId,
+    val journalpost = createJournalpost(receivedSykmelding.legekontorOrgName,
+            receivedSykmelding.legekontorOrgNr, receivedSykmelding.sykmelding.pasientAktoerId, receivedSykmelding.msgId,
+            saksId, receivedSykmelding.sykmelding.behandletTidspunkt, receivedSykmelding.mottattDato,
             objectMapper.writeValueAsBytes(receivedSykmelding.sykmelding), pdf).await()
 
     log.info("Message successfully persisted in Joark {} $logKeys", keyValue("journalpostId", journalpost.journalpostId), *logValues)
 }
 
-fun CoroutineScope.createJournalpost(
-    behandleJournalV2: BehandleJournalV2,
-    organisationName: String,
-    organisationNumber: String?,
-    userPersonNumber: String,
-    caseId: String,
-    sm2013: ByteArray,
-    pdf: ByteArray
-): Deferred<JournalfoerInngaaendeHenvendelseResponse> = async {
-    behandleJournalV2.journalfoerInngaaendeHenvendelse(JournalfoerInngaaendeHenvendelseRequest()
-            .withApplikasjonsID("SYFOSMSAK")
-            .withJournalpost(Journalpost()
-                    .withDokumentDato(now())
-                    .withJournalfoerendeEnhetREF(GOSYS)
-                    .withKanal(Kommunikasjonskanaler().withValue("NAV_NO"))
-                    .withSignatur(Signatur().withSignert(true))
-                    .withArkivtema(Arkivtemaer().withValue("SYM"))
-                    .withForBruker(Person().withIdent(NorskIdent().withIdent(userPersonNumber)))
-                    .withOpprettetAvNavn("SyfoSMSak")
-                    .withInnhold("Sykemelding")
-                    .withEksternPart(EksternPart()
-                            .withNavn(organisationName)
-                            .withEksternAktoer(Organisasjon().withOrgnummer(organisationNumber))
-                    )
-                    .withGjelderSak(Sak().withSaksId(caseId).withFagsystemkode(GOSYS))
-                    .withMottattDato(now())
-                    .withDokumentinfoRelasjon(DokumentinfoRelasjon()
-                            .withTillknyttetJournalpostSomKode("HOVEDDOKUMENT")
-                            .withJournalfoertDokument(JournalfoertDokumentInfo()
-                                    .withBegrensetPartsInnsyn(false)
-                                    .withDokumentType(Dokumenttyper().withValue("ES"))
-                                    .withSensitivitet(true)
-                                    .withTittel("Sykemelding")
-                                    .withKategorikode("ES")
-                                    .withBeskriverInnhold(
-                                            StrukturertInnhold()
-                                                    .withFilnavn("sykemelding.pdf")
-                                                    .withFiltype(Arkivfiltyper().withValue("PDF"))
-                                                    .withVariantformat(Variantformater().withValue("ARKIV"))
-                                                    .withInnhold(pdf),
-                                            StrukturertInnhold()
-                                                    .withFilnavn("sm2013.xml")
-                                                    .withFiltype(Arkivfiltyper().withValue("XML"))
-                                                    .withVariantformat(Variantformater().withValue("ARKIV"))
-                                                    .withInnhold(sm2013)
-                                    )
-                            )
-                    )
-            )
-    )
+fun createJournalpost(
+        organisationName: String,
+        organisationNumber: String?,
+        userAktoerId: String,
+        smId: String,
+        caseId: String,
+        sendDate: LocalDateTime,
+        receivedDate: LocalDateTime,
+        jsonSykmelding: ByteArray,
+        pdf: ByteArray
+): Deferred<MottaInngaandeForsendelseResultat> = httpClient.async {
+    httpClient.post<MottaInngaandeForsendelseResultat> {
+        body = MottaInngaaendeForsendelse(
+                forsokEndeligJF = true,
+                forsendelseInformasjon = ForsendelseInformasjon(
+                        bruker = Aktoer(aktoerId = userAktoerId),
+                        avsender = Aktoer(orgnr = organisationNumber, navn = organisationName),
+                        tema = "SYM",
+                        kanalReferanseId = smId,
+                        forsendelseInnsendt = sendDate,
+                        forsendelseMottatt = receivedDate,
+                        mottaksKanal = "NAV_NO",
+                        tittel = "Sykmelding",
+                        arkivSak = ArkivSak(
+                                arkivSakSystem = "GSAK",
+                                arkivSakId = caseId
+                        )
+                ),
+                tilleggsopplysninger = listOf(),
+                dokumentInfoHoveddokument = DokumentInfo(
+                        dokumentTypeId = "ES",
+                        tittel = "Sykmelding",
+                        dokumentkategori = "ES",
+                        dokumentVariant = listOf(
+                                DokumentVariant(
+                                        arkivFilType = "PDF/A",
+                                        variantFormat = "ARKIV",
+                                        dokument = pdf
+                                ),
+                                DokumentVariant(
+                                        arkivFilType = "JSON",
+                                        variantFormat = "WHATTOPUTHERE?",
+                                        dokument = jsonSykmelding
+                                )
+                        )
+                ),
+                dokumentInfoVedlegg = listOf()
+        )
+    }
 }
 
-const val GOSYS = "FS22"
-fun now(): XMLGregorianCalendar = datatypeFactory.newXMLGregorianCalendar(GregorianCalendar.from(ZonedDateTime.now()))
-
 fun createPdfPayload(
-    receivedSykmelding: ReceivedSykmelding
+        receivedSykmelding: ReceivedSykmelding
 ): PdfPayload = PdfPayload(
-        ediLoggId = receivedSykmelding.msgId
+        pasient = Pasient(
+                // TODO: Fetch name
+                fornavn = "Fornavn",
+                mellomnavn = "Mellomnavn",
+                etternavn = "Etternavnsen",
+                personnummer = receivedSykmelding.personNrPasient
+        ),
+        sykmelding = receivedSykmelding.sykmelding
 )
 
 fun Application.initRouting(applicationState: ApplicationState) {
