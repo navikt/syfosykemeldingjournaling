@@ -176,7 +176,7 @@ fun createJournalpost(
                         kanalReferanseId = smId,
                         forsendelseInnsendt = sendDate,
                         forsendelseMottatt = receivedDate,
-                        mottaksKanal = "NAV_NO",
+                        mottaksKanal = "NHN",
                         tittel = "Sykmelding",
                         arkivSak = ArkivSak(
                                 arkivSakSystem = "GSAK",
@@ -185,9 +185,8 @@ fun createJournalpost(
                 ),
                 tilleggsopplysninger = listOf(),
                 dokumentInfoHoveddokument = DokumentInfo(
-                        dokumentTypeId = "ES",
                         tittel = "Sykmelding",
-                        dokumentkategori = "ES",
+                        dokumentkategori = "Sykmelding",
                         dokumentVariant = listOf(
                                 DokumentVariant(
                                         arkivFilType = "PDF/A",
@@ -196,7 +195,7 @@ fun createJournalpost(
                                 ),
                                 DokumentVariant(
                                         arkivFilType = "JSON",
-                                        variantFormat = "WHATTOPUTHERE?",
+                                        variantFormat = "JSON",
                                         dokument = jsonSykmelding
                                 )
                         )

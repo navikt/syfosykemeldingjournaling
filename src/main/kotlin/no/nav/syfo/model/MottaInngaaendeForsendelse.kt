@@ -46,7 +46,7 @@ data class Tilleggsopplysning(
 )
 
 data class DokumentInfo(
-        val dokumentTypeId: String,
+        val dokumentTypeId: String? = null,
         val tittel: String?,
         val dokumentkategori: String?,
         val brevkode: String? = null,
