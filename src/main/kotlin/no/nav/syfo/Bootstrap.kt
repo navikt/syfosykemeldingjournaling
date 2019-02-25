@@ -195,7 +195,7 @@ fun createJournalpost(
                                 ),
                                 DokumentVariant(
                                         arkivFilType = "JSON",
-                                        variantFormat = "JSON",
+                                        variantFormat = "ORIGINAL",
                                         dokument = jsonSykmelding
                                 )
                         )
