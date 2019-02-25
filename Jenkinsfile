@@ -14,15 +14,17 @@ pipeline {
     stages {
         stage('initialize') {
             steps {
+                init action: 'default'
                 script {
-                    init action: 'default'
-                    sh './gradlew clean'
-                    applicationVersionGradle = sh(script: './gradlew -q printVersion', returnStdout: true).trim()
-                    env.APPLICATION_VERSION = "${applicationVersionGradle}"
+                    sh(script: './gradlew clean')
+                    def applicationVersionGradle = sh(script: './gradlew -q printVersion', returnStdout: true).trim()
+                    env.APPLICATION_VERSION = "${applicationVersionGradle}-${env.COMMIT_HASH_SHORT}"
                     if (applicationVersionGradle.endsWith('-SNAPSHOT')) {
                         env.APPLICATION_VERSION = "${applicationVersionGradle}.${env.BUILD_ID}-${env.COMMIT_HASH_SHORT}"
+                    } else {
+                        env.DEPLOY_TO = 'production'
                     }
-                    init action: 'updateStatus'
+                    init action: 'updateStatus', applicationName: env.APPLICATION_NAME, applicationVersion: env.APPLICATION_VERSION
                 }
             }
         }
