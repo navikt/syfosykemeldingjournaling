@@ -4,7 +4,7 @@ import java.time.LocalDateTime
 
 data class MottaInngaandeForsendelseResultat(
         val journalpostId: String,
-        val journalpostTilstand: String,
+        val journalTilstand: String,
         val dokumentIdList: List<String>
 )
 
