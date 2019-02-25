@@ -48,6 +48,11 @@ pipeline {
                 // TODO
             }
         }
+        stage('push docker image') {
+            steps {
+                dockerUtils action: 'createPushImage'
+            }
+        }
         stage('deploy to preprod') {
             steps {
                 deployApp action: 'kubectlDeploy', cluster: 'preprod-fss', placeholderFile: "preprod.env"
