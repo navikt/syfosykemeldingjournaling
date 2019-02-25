@@ -25,16 +25,19 @@ object KafkaITSpek: Spek({
 
     val env = Environment(
             applicationPort = getRandomPort(),
-            srvSyfoSmJoarkUsername = "unused",
-            srvSyfoSmJoarkPassword = "unused",
-            kafkaBootstrapServers = embeddedEnvironment.brokersURL
+            kafkaBootstrapServers = embeddedEnvironment.brokersURL,
+            dokmotMottaInngaaendeUrl = "TODO",
+            opprettSakUrl = "TODO"
     )
-    val producer = KafkaProducer<String, String>(readProducerConfig(env, StringSerializer::class).apply {
+
+    val vaultCredentials = VaultCredentials("unused", "unused")
+
+    val producer = KafkaProducer<String, String>(readProducerConfig(vaultCredentials, env, StringSerializer::class).apply {
         remove("security.protocol")
         remove("sasl.mechanism")
     })
 
-    val consumer = KafkaConsumer<String, String>(readConsumerConfig(env, StringDeserializer::class).apply {
+    val consumer = KafkaConsumer<String, String>(readConsumerConfig(vaultCredentials, env, StringDeserializer::class).apply {
         remove("security.protocol")
         remove("sasl.mechanism")
     })
