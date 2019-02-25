@@ -1,7 +1,7 @@
 apiVersion: 'nais.io/v1alpha1'
 kind: Application
 metadata:
-  name: syfosmjoark
+  name: syfosmsak
   namespace: default
   labels:
     team: "teamsykefravr"
