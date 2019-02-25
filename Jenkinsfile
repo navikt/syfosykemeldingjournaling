@@ -4,7 +4,7 @@ pipeline {
     agent any
 
     environment {
-        APPLICATION_NAME = 'syfosmjoark'
+        APPLICATION_NAME = 'syfosmsak'
         DISABLE_SLACK_MESSAGES = true
         ZONE = 'fss'
         DOCKER_SLUG='syfo'
@@ -48,12 +48,16 @@ pipeline {
                 // TODO
             }
         }
-        stage('deploy') {
+        stage('deploy to preprod') {
             steps {
-                dockerUtils action: 'createPushImage'
-                nais action: 'validate'
-                nais action: 'upload'
-                deployApp action: 'jiraPreprod'
+                deployApp action: 'kubectlDeploy', cluster: 'preprod-fss', placeholderFile: "preprod.env"
+            }
+        }
+        stage('deploy to production') {
+            when { environment name: 'DEPLOY_TO', value: 'production' }
+            steps {
+                deployApp action: 'kubectlDeploy', cluster: 'prod-fss', placeholderFile: "prod.env"
+                githubStatus action: 'tagRelease'
             }
         }
     }

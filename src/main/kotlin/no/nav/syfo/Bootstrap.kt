@@ -19,7 +19,7 @@ import io.ktor.http.contentType
 import io.ktor.routing.routing
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
-import kotlinx.coroutines.CoroutineScope
+import io.prometheus.client.hotspot.DefaultExports
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
@@ -43,6 +43,8 @@ import org.apache.kafka.common.serialization.Deserializer
 import org.apache.kafka.common.serialization.StringDeserializer
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import java.nio.file.Files
+import java.nio.file.Paths
 import java.time.Duration
 import java.time.LocalDateTime
 import java.util.Properties
@@ -67,7 +69,9 @@ val httpClient = HttpClient(CIO) {
 }
 
 fun main() = runBlocking {
+    DefaultExports.initialize()
     val env = Environment()
+    val credentials = objectMapper.readValue<VaultCredentials>(Files.newInputStream(Paths.get("/var/run/secrets/nais.io/vault/credentials.json")))
     val applicationState = ApplicationState()
 
     val applicationServer = embeddedServer(Netty, env.applicationPort) {
@@ -75,12 +79,12 @@ fun main() = runBlocking {
     }.start(wait = false)
 
     try {
-        val consumerProperties = readConsumerConfig(env, StringDeserializer::class)
+        val consumerProperties = readConsumerConfig(credentials, env, StringDeserializer::class)
         val applicationListeners = (1..env.applicationThreads).map {
             launch {
                 val consumer = KafkaConsumer<String, String>(consumerProperties)
                 consumer.subscribe(listOf(env.sm2013AutomaticHandlingTopic, env.smpapirAutomaticHandlingTopic))
-                listen(consumer, applicationState)
+                listen(env, consumer, applicationState)
             }
         }.toList()
 
@@ -96,6 +100,7 @@ fun main() = runBlocking {
 }
 
 suspend fun listen(
+        env: Environment,
         consumer: KafkaConsumer<String, String>,
         applicationState: ApplicationState
 ) {
@@ -103,7 +108,7 @@ suspend fun listen(
         consumer.poll(Duration.ofMillis(0)).forEach {
             try {
                 val receivedSykmelding: ReceivedSykmelding = objectMapper.readValue(it.value())
-                onJournalRequest(receivedSykmelding)
+                onJournalRequest(env, receivedSykmelding)
             } catch (e: Exception) {
                 log.error("Error occurred while trying to handle journaling request", e)
                 throw e
@@ -113,8 +118,7 @@ suspend fun listen(
     }
 }
 
-suspend fun onJournalRequest(receivedSykmelding: ReceivedSykmelding) {
-
+suspend fun onJournalRequest(env: Environment, receivedSykmelding: ReceivedSykmelding) {
     val logValues = arrayOf(
             keyValue("msgId", receivedSykmelding.msgId),
             keyValue("smId", receivedSykmelding.navLogId),
@@ -125,37 +129,47 @@ suspend fun onJournalRequest(receivedSykmelding: ReceivedSykmelding) {
 
     val saksId = UUID.randomUUID().toString()
 
-    val sakResponse  = httpClient.post<String>("http://sak/api/v1/saker") {
-        contentType(ContentType.Application.Json)
-        body = OpprettSak(
-                tema = "SYM",
-                applikasjon = "syfomottak",
-                aktoerId = receivedSykmelding.sykmelding.pasientAktoerId,
-                orgnr = null,
-                fagsakNr = saksId
-        )
-    }
+    val pdfPayload = createPdfPayload(receivedSykmelding)
+
+    val sakResponse  = createSak(env, receivedSykmelding.sykmelding.pasientAktoerId, saksId)
+    val pdf = createPdf(pdfPayload)
     log.debug("Response from request to create sak, {}", keyValue("response", sakResponse))
     log.info("Created a case $logKeys", *logValues)
 
-    val pdfPayload = createPdfPayload(receivedSykmelding)
-
-    val pdf: ByteArray = httpClient.call("http://pdf-gen/api/v1/genpdf/syfosm/syfosm") {
-        contentType(ContentType.Application.Json)
-        method = HttpMethod.Post
-        body = pdfPayload
-    }.response.readBytes()
     log.info("PDF generated $logKeys", *logValues)
 
-    val journalpost = createJournalpost(receivedSykmelding.legekontorOrgName,
+    sakResponse.await()
+    val journalpost = createJournalpost(env, receivedSykmelding.legekontorOrgName,
             receivedSykmelding.legekontorOrgNr, receivedSykmelding.sykmelding.pasientAktoerId, receivedSykmelding.msgId,
             saksId, receivedSykmelding.sykmelding.behandletTidspunkt, receivedSykmelding.mottattDato,
-            objectMapper.writeValueAsBytes(receivedSykmelding.sykmelding), pdf).await()
+            objectMapper.writeValueAsBytes(receivedSykmelding.sykmelding), pdf.await()).await()
 
     log.info("Message successfully persisted in Joark {} $logKeys", keyValue("journalpostId", journalpost.journalpostId), *logValues)
 }
 
+fun createPdf(payload: PdfPayload): Deferred<ByteArray> = httpClient.async {
+    httpClient.call("http://pdf-gen/api/v1/genpdf/syfosm/syfosm") {
+        contentType(ContentType.Application.Json)
+        method = HttpMethod.Post
+        body = payload
+    }.response.readBytes()
+}
+
+fun createSak(env: Environment, pasientAktoerId: String, saksId: String): Deferred<String> = httpClient.async {
+    httpClient.post<String>(env.opprettSakUrl) {
+        contentType(ContentType.Application.Json)
+        body = OpprettSak(
+                tema = "SYM",
+                applikasjon = "syfomottak",
+                aktoerId = pasientAktoerId,
+                orgnr = null,
+                fagsakNr = saksId
+        )
+    }
+}
+
 fun createJournalpost(
+        env: Environment,
         organisationName: String,
         organisationNumber: String?,
         userAktoerId: String,
@@ -166,7 +180,7 @@ fun createJournalpost(
         jsonSykmelding: ByteArray,
         pdf: ByteArray
 ): Deferred<MottaInngaandeForsendelseResultat> = httpClient.async {
-    httpClient.post<MottaInngaandeForsendelseResultat> {
+    httpClient.post<MottaInngaandeForsendelseResultat>(env.dokmotMottaInngaaendeUrl) {
         body = MottaInngaaendeForsendelse(
                 forsokEndeligJF = true,
                 forsendelseInformasjon = ForsendelseInformasjon(
@@ -176,7 +190,7 @@ fun createJournalpost(
                         kanalReferanseId = smId,
                         forsendelseInnsendt = sendDate,
                         forsendelseMottatt = receivedDate,
-                        mottaksKanal = "NHN",
+                        mottaksKanal = "EIA", // TODO
                         tittel = "Sykmelding",
                         arkivSak = ArkivSak(
                                 arkivSakSystem = "GSAK",
@@ -233,13 +247,14 @@ fun Application.initRouting(applicationState: ApplicationState) {
 
 
 fun readConsumerConfig(
+        credentials: VaultCredentials,
         env: Environment,
         valueDeserializer: KClass<out Deserializer<out Any>>,
         keyDeserializer: KClass<out Deserializer<out Any>> = valueDeserializer
 ) = Properties().apply {
     load(Environment::class.java.getResourceAsStream("/kafka_consumer.properties"))
     this["sasl.jaas.config"] = "org.apache.kafka.common.security.plain.PlainLoginModule required " +
-            "username=\"${env.srvSyfoSmJoarkUsername}\" password=\"${env.srvSyfoSmJoarkPassword}\";"
+            "username=\"${credentials.serviceuserUsername}\" password=\"${credentials.serviceuserPassword}\";"
     this["key.deserializer"] = keyDeserializer.qualifiedName
     this["value.deserializer"] = valueDeserializer.qualifiedName
     this["bootstrap.servers"] = env.kafkaBootstrapServers
