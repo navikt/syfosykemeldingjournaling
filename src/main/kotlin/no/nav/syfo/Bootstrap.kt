@@ -181,6 +181,7 @@ fun createJournalpost(
         pdf: ByteArray
 ): Deferred<MottaInngaandeForsendelseResultat> = httpClient.async {
     httpClient.post<MottaInngaandeForsendelseResultat>(env.dokmotMottaInngaaendeUrl) {
+        contentType(ContentType.Application.Json)
         body = MottaInngaaendeForsendelse(
                 forsokEndeligJF = true,
                 forsendelseInformasjon = ForsendelseInformasjon(
