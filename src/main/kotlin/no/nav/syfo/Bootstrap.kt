@@ -94,7 +94,12 @@ fun main() = runBlocking {
 
                 val consumer = KafkaConsumer<String, String>(consumerConfig)
                 consumer.subscribe(listOf(env.sm2013AutomaticHandlingTopic, env.smpapirAutomaticHandlingTopic))
-                listen(env, consumer, producer, applicationState)
+                try {
+                    listen(env, consumer, producer, applicationState)
+                } finally {
+                    log.error("Corutine failed, {}, shutting down", keyValue("context", coroutineContext.toString()))
+                    applicationState.running = false
+                }
             }
         }.toList()
 
