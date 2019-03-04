@@ -39,19 +39,20 @@ import no.nav.syfo.model.OpprettSak
 import no.nav.syfo.model.Pasient
 import no.nav.syfo.model.PdfPayload
 import no.nav.syfo.model.ReceivedSykmelding
+import no.nav.syfo.sak.avro.RegisterJournal
 import org.apache.kafka.clients.consumer.KafkaConsumer
-import org.apache.kafka.common.serialization.Deserializer
+import org.apache.kafka.clients.producer.KafkaProducer
+import org.apache.kafka.clients.producer.ProducerRecord
 import org.apache.kafka.common.serialization.StringDeserializer
+import org.apache.kafka.common.serialization.StringSerializer
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.nio.file.Files
 import java.nio.file.Paths
 import java.time.Duration
 import java.time.LocalDateTime
-import java.util.Properties
 import java.util.UUID
 import java.util.concurrent.TimeUnit
-import kotlin.reflect.KClass
 
 val objectMapper: ObjectMapper = ObjectMapper().apply {
     registerKotlinModule()
@@ -84,12 +85,16 @@ fun main() = runBlocking {
     }.start(wait = false)
 
     try {
-        val consumerProperties = readConsumerConfig(credentials, env, StringDeserializer::class)
+        val kafkaBaseConfig = loadBaseConfig(env, credentials)
+        val consumerConfig = kafkaBaseConfig.toConsumerConfig(env.applicationName, StringDeserializer::class)
+        val producerConfig = kafkaBaseConfig.toProducerConfig(env.applicationName, StringSerializer::class)
         val applicationListeners = (1..env.applicationThreads).map {
             launch {
-                val consumer = KafkaConsumer<String, String>(consumerProperties)
+                val producer = KafkaProducer<String, RegisterJournal>(producerConfig)
+
+                val consumer = KafkaConsumer<String, String>(consumerConfig)
                 consumer.subscribe(listOf(env.sm2013AutomaticHandlingTopic, env.smpapirAutomaticHandlingTopic))
-                listen(env, consumer, applicationState)
+                listen(env, consumer, producer, applicationState)
             }
         }.toList()
 
@@ -107,13 +112,14 @@ fun main() = runBlocking {
 suspend fun listen(
         env: Environment,
         consumer: KafkaConsumer<String, String>,
+        producer: KafkaProducer<String, RegisterJournal>,
         applicationState: ApplicationState
 ) {
     while (applicationState.running) {
         consumer.poll(Duration.ofMillis(0)).forEach {
             try {
                 val receivedSykmelding: ReceivedSykmelding = objectMapper.readValue(it.value())
-                onJournalRequest(env, receivedSykmelding)
+                onJournalRequest(env, receivedSykmelding, producer)
             } catch (e: Exception) {
                 log.error("Error occurred while trying to handle journaling request", e)
                 throw e
@@ -123,7 +129,11 @@ suspend fun listen(
     }
 }
 
-suspend fun onJournalRequest(env: Environment, receivedSykmelding: ReceivedSykmelding) {
+suspend fun onJournalRequest(
+        env: Environment,
+        receivedSykmelding: ReceivedSykmelding,
+        producer: KafkaProducer<String, RegisterJournal>
+) {
     val logValues = arrayOf(
             keyValue("msgId", receivedSykmelding.msgId),
             keyValue("smId", receivedSykmelding.navLogId),
@@ -148,6 +158,14 @@ suspend fun onJournalRequest(env: Environment, receivedSykmelding: ReceivedSykme
             receivedSykmelding.legekontorOrgNr, receivedSykmelding.sykmelding.pasientAktoerId, receivedSykmelding.msgId,
             saksId, receivedSykmelding.sykmelding.behandletTidspunkt, receivedSykmelding.mottattDato,
             objectMapper.writeValueAsBytes(receivedSykmelding.sykmelding), pdf.await()).await()
+
+    val registerJournal = RegisterJournal().apply {
+        journalpostKilde = "AS36"
+        messageId = receivedSykmelding.msgId
+        sakId = saksId
+        journalpostId = journalpost.journalpostId
+    }
+    producer.send(ProducerRecord(env.journalCreatedTopic, receivedSykmelding.msgId, registerJournal))
 
     log.info("Message successfully persisted in Joark {} $logKeys", keyValue("journalpostId", journalpost.journalpostId), *logValues)
 }
@@ -249,19 +267,4 @@ fun Application.initRouting(applicationState: ApplicationState) {
                 }
         )
     }
-}
-
-
-fun readConsumerConfig(
-        credentials: VaultCredentials,
-        env: Environment,
-        valueDeserializer: KClass<out Deserializer<out Any>>,
-        keyDeserializer: KClass<out Deserializer<out Any>> = valueDeserializer
-) = Properties().apply {
-    load(Environment::class.java.getResourceAsStream("/kafka_consumer.properties"))
-    this["sasl.jaas.config"] = "org.apache.kafka.common.security.plain.PlainLoginModule required " +
-            "username=\"${credentials.serviceuserUsername}\" password=\"${credentials.serviceuserPassword}\";"
-    this["key.deserializer"] = keyDeserializer.qualifiedName
-    this["value.deserializer"] = valueDeserializer.qualifiedName
-    this["bootstrap.servers"] = env.kafkaBootstrapServers
 }

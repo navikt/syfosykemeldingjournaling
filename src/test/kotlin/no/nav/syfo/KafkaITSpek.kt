@@ -32,15 +32,13 @@ object KafkaITSpek: Spek({
 
     val vaultCredentials = VaultCredentials("unused", "unused")
 
-    val producer = KafkaProducer<String, String>(readProducerConfig(vaultCredentials, env, StringSerializer::class).apply {
+    val baseConfig = loadBaseConfig(env, vaultCredentials).apply {
         remove("security.protocol")
         remove("sasl.mechanism")
-    })
+    }
+    val producer = KafkaProducer<String, String>(baseConfig.toProducerConfig("spek-test", StringSerializer::class))
+    val consumer = KafkaConsumer<String, String>(baseConfig.toConsumerConfig("spek-test", StringDeserializer::class))
 
-    val consumer = KafkaConsumer<String, String>(readConsumerConfig(vaultCredentials, env, StringDeserializer::class).apply {
-        remove("security.protocol")
-        remove("sasl.mechanism")
-    })
     consumer.subscribe(listOf(topic))
 
     beforeGroup {
