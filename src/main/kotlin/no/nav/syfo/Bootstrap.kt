@@ -97,7 +97,7 @@ fun main() = runBlocking {
                 try {
                     listen(env, consumer, producer, applicationState)
                 } finally {
-                    log.error("Corutine failed, {}, shutting down", keyValue("context", coroutineContext.toString()))
+                    log.error("Coroutine failed, {}, shutting down", keyValue("context", coroutineContext.toString()))
                     applicationState.running = false
                 }
             }
