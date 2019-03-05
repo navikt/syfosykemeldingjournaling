@@ -73,7 +73,7 @@ data class ApplicationState(var running: Boolean = true, var initialized: Boolea
 
 val httpClient = HttpClient(CIO) {
     install(Logging) {
-        level = LogLevel.ALL
+        level = LogLevel.INFO
     }
     install(JsonFeature) {
         serializer = JacksonSerializer {
@@ -213,7 +213,7 @@ fun createSak(
         httpClient.post<String>(env.opprettSakUrl) {
             contentType(ContentType.Application.Json)
             header("X-Correlation-ID", correlationId)
-            header("Authorization", "Bearer ${stsClient.oidcToken()}")
+            header("Authorization", "Bearer ${stsClient.oidcToken().access_token}")
             body = OpprettSak(
                     tema = "SYM",
                     applikasjon = "syfomottak",
@@ -247,7 +247,7 @@ fun createJournalpost(
 ): Deferred<MottaInngaandeForsendelseResultat> = httpClient.async {
     httpClient.post<MottaInngaandeForsendelseResultat>(env.dokmotMottaInngaaendeUrl) {
         contentType(ContentType.Application.Json)
-        header("Authorization", "Bearer ${stsClient.oidcToken()}")
+        header("Authorization", "Bearer ${stsClient.oidcToken().access_token}")
         body = MottaInngaaendeForsendelse(
                 forsokEndeligJF = true,
                 forsendelseInformasjon = ForsendelseInformasjon(
