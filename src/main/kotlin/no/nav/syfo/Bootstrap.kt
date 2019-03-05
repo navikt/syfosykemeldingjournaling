@@ -27,6 +27,7 @@ import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
 import io.ktor.util.KtorExperimentalAPI
 import io.prometheus.client.hotspot.DefaultExports
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
@@ -67,7 +68,7 @@ val objectMapper: ObjectMapper = ObjectMapper().apply {
     configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
 }
 
-val log: Logger = LoggerFactory.getLogger("no.nav.syfo.smjoark")
+val log: Logger = LoggerFactory.getLogger("smsak")
 
 data class ApplicationState(var running: Boolean = true, var initialized: Boolean = false)
 
@@ -208,33 +209,38 @@ fun createPdf(payload: PdfPayload): Deferred<ByteArray> = httpClient.async {
     }.response.readBytes()
 }
 
+fun <T> CoroutineScope.asyncHttp(name: String, trackingId: String, block: suspend () -> T): Deferred<T> = async {
+    try {
+        block()
+    } catch (e: BadResponseStatusException) {
+        log.error("Failed while trying to contact {} {}, {}",
+                keyValue("service", name),
+                keyValue("trackingId", trackingId),
+                keyValue("message", e.response.readText(Charsets.UTF_8))
+        )
+        throw e
+    }
+}
+
 @KtorExperimentalAPI
 fun createSak(
         env: Environment,
         pasientAktoerId: String,
         saksId: String,
-        correlationId: String,
+        msgId: String,
         stsClient: StsOidcClient
-): Deferred<String> = httpClient.async {
-    try {
-        httpClient.post<String>(env.opprettSakUrl) {
-            contentType(ContentType.Application.Json)
-            header("X-Correlation-ID", correlationId)
-            header("Authorization", "Bearer ${stsClient.oidcToken().access_token}")
-            body = OpprettSak(
-                    tema = "SYM",
-                    applikasjon = "syfomottak",
-                    aktoerId = pasientAktoerId,
-                    orgnr = null,
-                    fagsakNr = saksId
-            )
-        }
-    } catch (e: BadResponseStatusException) {
-        log.error("Failed while trying to contact dokmotinngaaende {}, {}",
-                keyValue("saksId", saksId),
-                keyValue("message", e.response.readText(Charsets.UTF_8))
+): Deferred<String> = httpClient.asyncHttp("sak_opprett", saksId) {
+    httpClient.post<String>(env.opprettSakUrl) {
+        contentType(ContentType.Application.Json)
+        header("X-Correlation-ID", msgId)
+        header("Authorization", "Bearer ${stsClient.oidcToken().access_token}")
+        body = OpprettSak(
+                tema = "SYM",
+                applikasjon = "syfomottak",
+                aktoerId = pasientAktoerId,
+                orgnr = null,
+                fagsakNr = saksId
         )
-        throw e
     }
 }
 
@@ -244,14 +250,14 @@ fun createJournalpost(
         organisationName: String,
         organisationNumber: String?,
         userAktoerId: String,
-        smId: String,
+        msgId: String,
         caseId: String,
         sendDate: LocalDateTime,
         receivedDate: LocalDateTime,
         pdf: ByteArray,
         jsonSykmelding: ByteArray,
         stsClient: StsOidcClient
-): Deferred<MottaInngaandeForsendelseResultat> = httpClient.async {
+): Deferred<MottaInngaandeForsendelseResultat> = httpClient.asyncHttp("dokmotinngaaende", msgId) {
     httpClient.post<MottaInngaandeForsendelseResultat>(env.dokmotMottaInngaaendeUrl) {
         contentType(ContentType.Application.Json)
         header("Authorization", "Bearer ${stsClient.oidcToken().access_token}")
@@ -261,7 +267,7 @@ fun createJournalpost(
                         bruker = Aktoer(aktoerId = userAktoerId),
                         avsender = Aktoer(orgnr = organisationNumber, navn = organisationName),
                         tema = "SYM",
-                        kanalReferanseId = smId,
+                        kanalReferanseId = msgId,
                         forsendelseInnsendt = sendDate,
                         forsendelseMottatt = receivedDate,
                         mottaksKanal = "EIA", // TODO
