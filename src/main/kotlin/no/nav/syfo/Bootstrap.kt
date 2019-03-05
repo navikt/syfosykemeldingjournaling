@@ -23,6 +23,7 @@ import io.ktor.http.contentType
 import io.ktor.routing.routing
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
+import io.ktor.util.KtorExperimentalAPI
 import io.prometheus.client.hotspot.DefaultExports
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.async
@@ -31,6 +32,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import net.logstash.logback.argument.StructuredArguments.keyValue
 import no.nav.syfo.api.registerNaisApi
+import no.nav.syfo.client.StsOidcClient
 import no.nav.syfo.model.Aktoer
 import no.nav.syfo.model.ArkivSak
 import no.nav.syfo.model.DokumentInfo
@@ -77,6 +79,7 @@ val httpClient = HttpClient(CIO) {
     }
 }
 
+@KtorExperimentalAPI
 fun main() = runBlocking {
     DefaultExports.initialize()
     val env = Environment()
@@ -86,6 +89,8 @@ fun main() = runBlocking {
     val applicationServer = embeddedServer(Netty, env.applicationPort) {
         initRouting(applicationState)
     }.start(wait = false)
+
+    val stsClient = StsOidcClient(credentials.serviceuserUsername, credentials.serviceuserPassword)
 
     try {
         val kafkaBaseConfig = loadBaseConfig(env, credentials)
@@ -98,7 +103,7 @@ fun main() = runBlocking {
                 val consumer = KafkaConsumer<String, String>(consumerConfig)
                 consumer.subscribe(listOf(env.sm2013AutomaticHandlingTopic, env.smpapirAutomaticHandlingTopic))
                 try {
-                    listen(env, consumer, producer, applicationState)
+                    listen(env, consumer, producer, applicationState, stsClient)
                 } finally {
                     log.error("Coroutine failed, {}, shutting down", keyValue("context", coroutineContext.toString()))
                     applicationState.running = false
@@ -117,17 +122,19 @@ fun main() = runBlocking {
     }
 }
 
+@KtorExperimentalAPI
 suspend fun listen(
         env: Environment,
         consumer: KafkaConsumer<String, String>,
         producer: KafkaProducer<String, RegisterJournal>,
-        applicationState: ApplicationState
+        applicationState: ApplicationState,
+        stsClient: StsOidcClient
 ) {
     while (applicationState.running) {
         consumer.poll(Duration.ofMillis(0)).forEach {
             try {
                 val receivedSykmelding: ReceivedSykmelding = objectMapper.readValue(it.value())
-                onJournalRequest(env, receivedSykmelding, producer)
+                onJournalRequest(env, receivedSykmelding, producer, stsClient)
             } catch (e: Exception) {
                 log.error("Error occurred while trying to handle journaling request", e)
                 throw e
@@ -137,10 +144,12 @@ suspend fun listen(
     }
 }
 
+@KtorExperimentalAPI
 suspend fun onJournalRequest(
         env: Environment,
         receivedSykmelding: ReceivedSykmelding,
-        producer: KafkaProducer<String, RegisterJournal>
+        producer: KafkaProducer<String, RegisterJournal>,
+        stsClient: StsOidcClient
 ) {
     val logValues = arrayOf(
             keyValue("msgId", receivedSykmelding.msgId),
@@ -154,7 +163,8 @@ suspend fun onJournalRequest(
 
     val pdfPayload = createPdfPayload(receivedSykmelding)
 
-    val sakResponse  = createSak(env, receivedSykmelding.sykmelding.pasientAktoerId, saksId, receivedSykmelding.msgId)
+    val sakResponse  = createSak(env, receivedSykmelding.sykmelding.pasientAktoerId, saksId,
+            receivedSykmelding.msgId, stsClient)
     val pdf = createPdf(pdfPayload)
     log.debug("Response from request to create sak, {}", keyValue("response", sakResponse))
     log.info("Created a case $logKeys", *logValues)
@@ -165,7 +175,7 @@ suspend fun onJournalRequest(
     val journalpost = createJournalpost(env, receivedSykmelding.legekontorOrgName,
             receivedSykmelding.legekontorOrgNr, receivedSykmelding.sykmelding.pasientAktoerId, receivedSykmelding.msgId,
             saksId, receivedSykmelding.sykmelding.behandletTidspunkt, receivedSykmelding.mottattDato, pdf.await(),
-            objectMapper.writeValueAsBytes(receivedSykmelding.sykmelding)).await()
+            objectMapper.writeValueAsBytes(receivedSykmelding.sykmelding), stsClient).await()
 
     val registerJournal = RegisterJournal().apply {
         journalpostKilde = "AS36"
@@ -186,16 +196,19 @@ fun createPdf(payload: PdfPayload): Deferred<ByteArray> = httpClient.async {
     }.response.readBytes()
 }
 
+@KtorExperimentalAPI
 fun createSak(
         env: Environment,
         pasientAktoerId: String,
         saksId: String,
-        correlationId: String
+        correlationId: String,
+        stsClient: StsOidcClient
 ): Deferred<String> = httpClient.async {
     try {
         httpClient.post<String>(env.opprettSakUrl) {
             contentType(ContentType.Application.Json)
             header("X-Correlation-ID", correlationId)
+            header("Authorization", "Bearer ${stsClient.oidcToken()}")
             body = OpprettSak(
                     tema = "SYM",
                     applikasjon = "syfomottak",
@@ -213,6 +226,7 @@ fun createSak(
     }
 }
 
+@KtorExperimentalAPI
 fun createJournalpost(
         env: Environment,
         organisationName: String,
@@ -223,10 +237,12 @@ fun createJournalpost(
         sendDate: LocalDateTime,
         receivedDate: LocalDateTime,
         pdf: ByteArray,
-        jsonSykmelding: ByteArray
+        jsonSykmelding: ByteArray,
+        stsClient: StsOidcClient
 ): Deferred<MottaInngaandeForsendelseResultat> = httpClient.async {
     httpClient.post<MottaInngaandeForsendelseResultat>(env.dokmotMottaInngaaendeUrl) {
         contentType(ContentType.Application.Json)
+        header("Authorization", "Bearer ${stsClient.oidcToken()}")
         body = MottaInngaaendeForsendelse(
                 forsokEndeligJF = true,
                 forsendelseInformasjon = ForsendelseInformasjon(
