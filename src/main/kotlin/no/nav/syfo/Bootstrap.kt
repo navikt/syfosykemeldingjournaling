@@ -106,7 +106,14 @@ fun main() = runBlocking {
                 val producer = KafkaProducer<String, RegisterJournal>(producerConfig)
 
                 val consumer = KafkaConsumer<String, String>(consumerConfig)
-                consumer.subscribe(listOf(env.sm2013AutomaticHandlingTopic, env.smpapirAutomaticHandlingTopic))
+                consumer.subscribe(listOf(
+                        env.sm2013AutomaticHandlingTopic,
+                        env.sm2013ManualHandlingTopic,
+                        env.sm2013InvalidHandlingTopic,
+                        env.smpapirAutomaticHandlingTopic,
+                        env.smpapirManualHandlingTopic,
+                        env.smpapirInvalidHandlingTopic
+                ))
                 try {
                     listen(env, consumer, producer, applicationState, stsClient)
                 } finally {
