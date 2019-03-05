@@ -316,12 +316,8 @@ fun createPdfPayload(
 fun Application.initRouting(applicationState: ApplicationState) {
     routing {
         registerNaisApi(
-                readynessCheck = {
-                    applicationState.initialized
-                },
-                livenessCheck = {
-                    applicationState.running
-                }
+                readynessCheck = { applicationState.initialized },
+                livenessCheck = { applicationState.running }
         )
     }
 }
