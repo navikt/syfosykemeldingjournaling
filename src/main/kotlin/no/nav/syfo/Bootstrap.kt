@@ -10,10 +10,12 @@ import io.ktor.application.Application
 import io.ktor.client.HttpClient
 import io.ktor.client.call.call
 import io.ktor.client.engine.cio.CIO
+import io.ktor.client.features.BadResponseStatusException
 import io.ktor.client.features.json.JacksonSerializer
 import io.ktor.client.features.json.JsonFeature
 import io.ktor.client.request.post
 import io.ktor.client.response.readBytes
+import io.ktor.client.response.readText
 import io.ktor.http.ContentType
 import io.ktor.http.HttpMethod
 import io.ktor.http.contentType
@@ -161,8 +163,8 @@ suspend fun onJournalRequest(
     sakResponse.await()
     val journalpost = createJournalpost(env, receivedSykmelding.legekontorOrgName,
             receivedSykmelding.legekontorOrgNr, receivedSykmelding.sykmelding.pasientAktoerId, receivedSykmelding.msgId,
-            saksId, receivedSykmelding.sykmelding.behandletTidspunkt, receivedSykmelding.mottattDato,
-            objectMapper.writeValueAsBytes(receivedSykmelding.sykmelding), pdf.await()).await()
+            saksId, receivedSykmelding.sykmelding.behandletTidspunkt, receivedSykmelding.mottattDato, pdf.await(),
+            objectMapper.writeValueAsBytes(receivedSykmelding.sykmelding)).await()
 
     val registerJournal = RegisterJournal().apply {
         journalpostKilde = "AS36"
@@ -184,15 +186,23 @@ fun createPdf(payload: PdfPayload): Deferred<ByteArray> = httpClient.async {
 }
 
 fun createSak(env: Environment, pasientAktoerId: String, saksId: String): Deferred<String> = httpClient.async {
-    httpClient.post<String>(env.opprettSakUrl) {
-        contentType(ContentType.Application.Json)
-        body = OpprettSak(
-                tema = "SYM",
-                applikasjon = "syfomottak",
-                aktoerId = pasientAktoerId,
-                orgnr = null,
-                fagsakNr = saksId
+    try {
+        httpClient.post<String>(env.opprettSakUrl) {
+            contentType(ContentType.Application.Json)
+            body = OpprettSak(
+                    tema = "SYM",
+                    applikasjon = "syfomottak",
+                    aktoerId = pasientAktoerId,
+                    orgnr = null,
+                    fagsakNr = saksId
+            )
+        }
+    } catch (e: BadResponseStatusException) {
+        log.error("Failed while trying to contact dokmotinngaaende {}, {}",
+                keyValue("saksId", saksId),
+                keyValue("message", e.response.readText(Charsets.UTF_8))
         )
+        throw e
     }
 }
 
@@ -205,8 +215,8 @@ fun createJournalpost(
         caseId: String,
         sendDate: LocalDateTime,
         receivedDate: LocalDateTime,
-        jsonSykmelding: ByteArray,
-        pdf: ByteArray
+        pdf: ByteArray,
+        jsonSykmelding: ByteArray
 ): Deferred<MottaInngaandeForsendelseResultat> = httpClient.async {
     httpClient.post<MottaInngaandeForsendelseResultat>(env.dokmotMottaInngaaendeUrl) {
         contentType(ContentType.Application.Json)
