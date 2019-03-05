@@ -13,6 +13,7 @@ import io.ktor.client.engine.cio.CIO
 import io.ktor.client.features.BadResponseStatusException
 import io.ktor.client.features.json.JacksonSerializer
 import io.ktor.client.features.json.JsonFeature
+import io.ktor.client.request.header
 import io.ktor.client.request.post
 import io.ktor.client.response.readBytes
 import io.ktor.client.response.readText
@@ -153,7 +154,7 @@ suspend fun onJournalRequest(
 
     val pdfPayload = createPdfPayload(receivedSykmelding)
 
-    val sakResponse  = createSak(env, receivedSykmelding.sykmelding.pasientAktoerId, saksId)
+    val sakResponse  = createSak(env, receivedSykmelding.sykmelding.pasientAktoerId, saksId, receivedSykmelding.msgId)
     val pdf = createPdf(pdfPayload)
     log.debug("Response from request to create sak, {}", keyValue("response", sakResponse))
     log.info("Created a case $logKeys", *logValues)
@@ -185,10 +186,16 @@ fun createPdf(payload: PdfPayload): Deferred<ByteArray> = httpClient.async {
     }.response.readBytes()
 }
 
-fun createSak(env: Environment, pasientAktoerId: String, saksId: String): Deferred<String> = httpClient.async {
+fun createSak(
+        env: Environment,
+        pasientAktoerId: String,
+        saksId: String,
+        correlationId: String
+): Deferred<String> = httpClient.async {
     try {
         httpClient.post<String>(env.opprettSakUrl) {
             contentType(ContentType.Application.Json)
+            header("X-Correlation-ID", correlationId)
             body = OpprettSak(
                     tema = "SYM",
                     applikasjon = "syfomottak",
