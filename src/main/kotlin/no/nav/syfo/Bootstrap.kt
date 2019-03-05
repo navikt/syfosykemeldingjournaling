@@ -58,7 +58,8 @@ import org.slf4j.LoggerFactory
 import java.nio.file.Files
 import java.nio.file.Paths
 import java.time.Duration
-import java.time.LocalDateTime
+import java.time.ZoneId
+import java.time.ZonedDateTime
 import java.util.UUID
 import java.util.concurrent.TimeUnit
 
@@ -187,7 +188,7 @@ suspend fun onJournalRequest(
     sakResponse.await()
     val journalpost = createJournalpost(env, receivedSykmelding.legekontorOrgName,
             receivedSykmelding.legekontorOrgNr, receivedSykmelding.sykmelding.pasientAktoerId, receivedSykmelding.msgId,
-            saksId, receivedSykmelding.sykmelding.behandletTidspunkt, receivedSykmelding.mottattDato, pdf.await(),
+            saksId, receivedSykmelding.sykmelding.behandletTidspunkt.atZone(ZoneId.systemDefault()), receivedSykmelding.mottattDato.atZone(ZoneId.systemDefault()), pdf.await(),
             objectMapper.writeValueAsBytes(receivedSykmelding.sykmelding), stsClient).await()
 
     val registerJournal = RegisterJournal().apply {
@@ -252,8 +253,8 @@ fun createJournalpost(
         userAktoerId: String,
         msgId: String,
         caseId: String,
-        sendDate: LocalDateTime,
-        receivedDate: LocalDateTime,
+        sendDate: ZonedDateTime,
+        receivedDate: ZonedDateTime,
         pdf: ByteArray,
         jsonSykmelding: ByteArray,
         stsClient: StsOidcClient

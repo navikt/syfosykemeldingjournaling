@@ -1,6 +1,6 @@
 package no.nav.syfo.model
 
-import java.time.LocalDateTime
+import java.time.ZonedDateTime
 
 data class MottaInngaandeForsendelseResultat(
         val journalpostId: String,
@@ -21,8 +21,8 @@ data class ForsendelseInformasjon(
         val avsender: Aktoer,
         val tema: String,
         val kanalReferanseId: String,
-        val forsendelseMottatt: LocalDateTime,
-        val forsendelseInnsendt: LocalDateTime,
+        val forsendelseMottatt: ZonedDateTime,
+        val forsendelseInnsendt: ZonedDateTime,
         val mottaksKanal: String,
         val tittel: String?,
         val arkivSak: ArkivSak?
