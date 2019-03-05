@@ -111,8 +111,7 @@ fun main() = runBlocking {
                         env.sm2013ManualHandlingTopic,
                         env.sm2013InvalidHandlingTopic,
                         env.smpapirAutomaticHandlingTopic,
-                        env.smpapirManualHandlingTopic,
-                        env.smpapirInvalidHandlingTopic
+                        env.smpapirManualHandlingTopic
                 ))
                 try {
                     listen(env, consumer, producer, applicationState, stsClient)
