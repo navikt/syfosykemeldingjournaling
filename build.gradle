@@ -26,7 +26,7 @@ shadowJar {
 }
 
 group "no.nav.syfo"
-version "1.0"
+version "1.0-SNAPSHOT"
 
 repositories {
     mavenCentral()
@@ -61,6 +61,7 @@ dependencies {
     implementation("io.ktor:ktor-client-json-jvm:$ktor_version")
     implementation("io.ktor:ktor-client-auth-basic:$ktor_version")
     implementation("io.ktor:ktor-client-jackson:$ktor_version")
+    implementation("io.ktor:ktor-client-logging-jvm:$ktor_version")
 
     implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:$jackson_version")
 

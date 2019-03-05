@@ -13,6 +13,8 @@ import io.ktor.client.engine.cio.CIO
 import io.ktor.client.features.BadResponseStatusException
 import io.ktor.client.features.json.JacksonSerializer
 import io.ktor.client.features.json.JsonFeature
+import io.ktor.client.features.logging.LogLevel
+import io.ktor.client.features.logging.Logging
 import io.ktor.client.request.header
 import io.ktor.client.request.post
 import io.ktor.client.response.readBytes
@@ -70,6 +72,9 @@ val log: Logger = LoggerFactory.getLogger("no.nav.syfo.smjoark")
 data class ApplicationState(var running: Boolean = true, var initialized: Boolean = false)
 
 val httpClient = HttpClient(CIO) {
+    install(Logging) {
+        level = LogLevel.ALL
+    }
     install(JsonFeature) {
         serializer = JacksonSerializer {
             registerKotlinModule()
