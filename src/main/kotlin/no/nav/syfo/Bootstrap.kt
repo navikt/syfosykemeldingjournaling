@@ -76,7 +76,7 @@ data class ApplicationState(var running: Boolean = true, var initialized: Boolea
 @KtorExperimentalAPI
 val httpClient = HttpClient(CIO) {
     install(Logging) {
-        level = LogLevel.INFO
+        level = LogLevel.ALL
     }
     install(JsonFeature) {
         serializer = JacksonSerializer {

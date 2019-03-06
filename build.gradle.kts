@@ -1,9 +1,8 @@
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 import com.github.jengelman.gradle.plugins.shadow.transformers.ServiceFileTransformer
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 group = "no.nav.syfo"
-version = "1.0.0"
+version = "1.0.0-SNAPSHOT"
 
 val confluentVersion = "5.0.0"
 val coroutinesVersion = "1.1.1"
@@ -35,12 +34,12 @@ plugins {
 
 
 repositories {
-    maven (url= "https://repo.adeo.no/repository/maven-snapshots/")
-    maven (url= "https://repo.adeo.no/repository/maven-releases/")
-    maven (url= "https://dl.bintray.com/kotlin/ktor")
-    maven (url= "https://dl.bintray.com/spekframework/spek-dev")
-    maven (url= "http://packages.confluent.io/maven/")
-    maven (url= "https://kotlin.bintray.com/kotlinx")
+    maven (url = "https://repo.adeo.no/repository/maven-snapshots/")
+    maven (url = "https://repo.adeo.no/repository/maven-releases/")
+    maven (url = "https://dl.bintray.com/kotlin/ktor")
+    maven (url = "https://dl.bintray.com/spekframework/spek-dev")
+    maven (url = "http://packages.confluent.io/maven/")
+    maven (url = "https://kotlin.bintray.com/kotlinx")
     mavenCentral()
     jcenter()
 }
