@@ -12,7 +12,7 @@ import org.spekframework.spek2.style.specification.describe
 import java.net.ServerSocket
 import java.time.Duration
 
-object KafkaITSpek: Spek({
+object KafkaITSpek : Spek({
     val topic = "aapen-test-topic"
     fun getRandomPort() = ServerSocket(0).use {
         it.localPort

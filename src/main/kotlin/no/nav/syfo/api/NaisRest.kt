@@ -5,16 +5,15 @@ import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.response.respondText
 import io.ktor.response.respondTextWriter
-import io.ktor.response.respondWrite
 import io.ktor.routing.Routing
 import io.ktor.routing.get
 import io.prometheus.client.CollectorRegistry
 import io.prometheus.client.exporter.common.TextFormat
 
 fun Routing.registerNaisApi(
-        readynessCheck: () -> Boolean,
-        livenessCheck: () -> Boolean = { true },
-        collectorRegistry: CollectorRegistry = CollectorRegistry.defaultRegistry
+    readynessCheck: () -> Boolean,
+    livenessCheck: () -> Boolean = { true },
+    collectorRegistry: CollectorRegistry = CollectorRegistry.defaultRegistry
 ) {
     get("/is_alive") {
         if (livenessCheck()) {

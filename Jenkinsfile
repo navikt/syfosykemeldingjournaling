@@ -3,12 +3,13 @@
 pipeline {
     agent any
 
+  tools {
+            jdk 'openjdk11'
+        }
+
     environment {
         APPLICATION_NAME = 'syfosmsak'
-        DISABLE_SLACK_MESSAGES = true
-        ZONE = 'fss'
         DOCKER_SLUG='syfo'
-        FASIT_ENVIRONMENT='q1'
     }
 
     stages {

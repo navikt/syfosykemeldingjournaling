@@ -73,6 +73,7 @@ val log: Logger = LoggerFactory.getLogger("smsak")
 
 data class ApplicationState(var running: Boolean = true, var initialized: Boolean = false)
 
+@KtorExperimentalAPI
 val httpClient = HttpClient(CIO) {
     install(Logging) {
         level = LogLevel.INFO
@@ -137,11 +138,11 @@ fun main() = runBlocking {
 
 @KtorExperimentalAPI
 suspend fun listen(
-        env: Environment,
-        consumer: KafkaConsumer<String, String>,
-        producer: KafkaProducer<String, RegisterJournal>,
-        applicationState: ApplicationState,
-        stsClient: StsOidcClient
+    env: Environment,
+    consumer: KafkaConsumer<String, String>,
+    producer: KafkaProducer<String, RegisterJournal>,
+    applicationState: ApplicationState,
+    stsClient: StsOidcClient
 ) {
     while (applicationState.running) {
         consumer.poll(Duration.ofMillis(0)).forEach {
@@ -160,10 +161,10 @@ suspend fun listen(
 
 @KtorExperimentalAPI
 suspend fun onJournalRequest(
-        env: Environment,
-        receivedSykmelding: ReceivedSykmelding,
-        producer: KafkaProducer<String, RegisterJournal>,
-        stsClient: StsOidcClient
+    env: Environment,
+    receivedSykmelding: ReceivedSykmelding,
+    producer: KafkaProducer<String, RegisterJournal>,
+    stsClient: StsOidcClient
 ) {
     val logValues = arrayOf(
             keyValue("msgId", receivedSykmelding.msgId),
@@ -177,7 +178,7 @@ suspend fun onJournalRequest(
 
     val pdfPayload = createPdfPayload(receivedSykmelding)
 
-    val sakResponse  = createSak(env, receivedSykmelding.sykmelding.pasientAktoerId, saksId,
+    val sakResponse = createSak(env, receivedSykmelding.sykmelding.pasientAktoerId, saksId,
             receivedSykmelding.msgId, stsClient)
     val pdf = createPdf(pdfPayload)
     log.debug("Response from request to create sak, {}", keyValue("response", sakResponse))
@@ -202,6 +203,7 @@ suspend fun onJournalRequest(
     log.info("Message successfully persisted in Joark {} $logKeys", keyValue("journalpostId", journalpost.journalpostId), *logValues)
 }
 
+@KtorExperimentalAPI
 fun createPdf(payload: PdfPayload): Deferred<ByteArray> = httpClient.async {
     httpClient.call("http://pdf-gen/api/v1/genpdf/syfosm/syfosm") {
         contentType(ContentType.Application.Json)
@@ -225,11 +227,11 @@ fun <T> CoroutineScope.asyncHttp(name: String, trackingId: String, block: suspen
 
 @KtorExperimentalAPI
 fun createSak(
-        env: Environment,
-        pasientAktoerId: String,
-        saksId: String,
-        msgId: String,
-        stsClient: StsOidcClient
+    env: Environment,
+    pasientAktoerId: String,
+    saksId: String,
+    msgId: String,
+    stsClient: StsOidcClient
 ): Deferred<String> = httpClient.asyncHttp("sak_opprett", saksId) {
     httpClient.post<String>(env.opprettSakUrl) {
         contentType(ContentType.Application.Json)
@@ -247,17 +249,17 @@ fun createSak(
 
 @KtorExperimentalAPI
 fun createJournalpost(
-        env: Environment,
-        organisationName: String,
-        organisationNumber: String?,
-        userAktoerId: String,
-        msgId: String,
-        caseId: String,
-        sendDate: ZonedDateTime,
-        receivedDate: ZonedDateTime,
-        pdf: ByteArray,
-        jsonSykmelding: ByteArray,
-        stsClient: StsOidcClient
+    env: Environment,
+    organisationName: String,
+    organisationNumber: String?,
+    userAktoerId: String,
+    msgId: String,
+    caseId: String,
+    sendDate: ZonedDateTime,
+    receivedDate: ZonedDateTime,
+    pdf: ByteArray,
+    jsonSykmelding: ByteArray,
+    stsClient: StsOidcClient
 ): Deferred<MottaInngaandeForsendelseResultat> = httpClient.asyncHttp("dokmotinngaaende", msgId) {
     httpClient.post<MottaInngaandeForsendelseResultat>(env.dokmotMottaInngaaendeUrl) {
         contentType(ContentType.Application.Json)
@@ -301,7 +303,7 @@ fun createJournalpost(
 }
 
 fun createPdfPayload(
-        receivedSykmelding: ReceivedSykmelding
+    receivedSykmelding: ReceivedSykmelding
 ): PdfPayload = PdfPayload(
         pasient = Pasient(
                 // TODO: Fetch name

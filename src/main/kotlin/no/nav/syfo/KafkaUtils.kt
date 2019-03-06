@@ -10,7 +10,6 @@ import org.apache.kafka.common.serialization.StringSerializer
 import java.util.Properties
 import kotlin.reflect.KClass
 
-
 fun loadBaseConfig(env: Environment, credentials: VaultCredentials): Properties = Properties().also {
     it.load(Environment::class.java.getResourceAsStream("/kafka_base.properties"))
     it["sasl.jaas.config"] = "org.apache.kafka.common.security.plain.PlainLoginModule required " +
@@ -20,9 +19,9 @@ fun loadBaseConfig(env: Environment, credentials: VaultCredentials): Properties 
 }
 
 fun Properties.toConsumerConfig(
-        groupId: String,
-        valueDeserializer: KClass<out Deserializer<out Any>>,
-        keyDeserializer: KClass<out Deserializer<out Any>> = StringDeserializer::class
+    groupId: String,
+    valueDeserializer: KClass<out Deserializer<out Any>>,
+    keyDeserializer: KClass<out Deserializer<out Any>> = StringDeserializer::class
 ): Properties = Properties().also {
     it.putAll(this)
     it[ConsumerConfig.GROUP_ID_CONFIG] = groupId
@@ -31,9 +30,9 @@ fun Properties.toConsumerConfig(
 }
 
 fun Properties.toProducerConfig(
-        groupId: String,
-        valueSerializer: KClass<out Serializer<out Any>>,
-        keySerializer: KClass<out Serializer<out Any>> = StringSerializer::class
+    groupId: String,
+    valueSerializer: KClass<out Serializer<out Any>>,
+    keySerializer: KClass<out Serializer<out Any>> = StringSerializer::class
 ): Properties = Properties().also {
     it.putAll(this)
     it[ConsumerConfig.GROUP_ID_CONFIG] = groupId
