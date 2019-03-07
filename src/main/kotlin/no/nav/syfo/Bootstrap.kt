@@ -286,7 +286,7 @@ fun createJournalpost(
                         dokumentkategori = "Sykmelding",
                         dokumentVariant = listOf(
                                 DokumentVariant(
-                                        arkivFilType = "PDF/A",
+                                        arkivFilType = "PDFA",
                                         variantFormat = "ARKIV",
                                         dokument = pdf
                                 ),
