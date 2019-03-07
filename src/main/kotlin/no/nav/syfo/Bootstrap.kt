@@ -276,7 +276,7 @@ fun createJournalpost(
                         mottaksKanal = "EIA", // TODO
                         tittel = "Sykmelding",
                         arkivSak = ArkivSak(
-                                arkivSakSystem = "GSAK",
+                                arkivSakSystem = "FS22",
                                 arkivSakId = caseId
                         )
                 ),
