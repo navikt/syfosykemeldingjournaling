@@ -292,7 +292,7 @@ fun createJournalpost(
                                 ),
                                 DokumentVariant(
                                         arkivFilType = "JSON",
-                                        variantFormat = "PRODUKSJON",
+                                        variantFormat = "ORIGINAL", // TODO: PRODUKSJON?
                                         dokument = jsonSykmelding
                                 )
                         )
