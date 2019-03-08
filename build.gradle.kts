@@ -98,6 +98,6 @@ tasks {
         useJUnitPlatform {
             includeEngines("spek2")
         }
-        testLogging.events("passed", "skipped", "failed")
+        testLogging.showStandardStreams = true
     }
 }
