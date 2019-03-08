@@ -6,6 +6,8 @@ import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.kotlin.readValue
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
+import io.confluent.kafka.serializers.KafkaAvroDeserializer
+import io.confluent.kafka.serializers.KafkaAvroSerializer
 import io.ktor.application.Application
 import io.ktor.client.HttpClient
 import io.ktor.client.call.call
@@ -103,7 +105,7 @@ fun main() = runBlocking {
     try {
         val kafkaBaseConfig = loadBaseConfig(env, credentials)
         val consumerConfig = kafkaBaseConfig.toConsumerConfig(env.applicationName, StringDeserializer::class)
-        val producerConfig = kafkaBaseConfig.toProducerConfig(env.applicationName, StringSerializer::class)
+        val producerConfig = kafkaBaseConfig.toProducerConfig(env.applicationName, KafkaAvroSerializer::class)
         val applicationListeners = (1..env.applicationThreads).map {
             launch {
                 val producer = KafkaProducer<String, RegisterJournal>(producerConfig)
