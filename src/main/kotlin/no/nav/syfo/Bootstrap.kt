@@ -38,6 +38,7 @@ import net.logstash.logback.argument.StructuredArguments.keyValue
 import no.nav.syfo.api.registerNaisApi
 import no.nav.syfo.client.StsOidcClient
 import no.nav.syfo.model.Aktoer
+import no.nav.syfo.model.AktoerWrapper
 import no.nav.syfo.model.ArkivSak
 import no.nav.syfo.model.DokumentInfo
 import no.nav.syfo.model.DokumentVariant
@@ -269,8 +270,8 @@ fun createJournalpost(
         body = MottaInngaaendeForsendelse(
                 forsokEndeligJF = true,
                 forsendelseInformasjon = ForsendelseInformasjon(
-                        bruker = Aktoer(person = Person(aktoerId = userAktoerId)),
-                        avsender = Aktoer(organisasjon = Organisasjon(orgnr = organisationNumber!!, navn = organisationName)),
+                        bruker = AktoerWrapper(Aktoer(person = Person(ident = userAktoerId))),
+                        avsender = AktoerWrapper(Aktoer(organisasjon = Organisasjon(orgnr = organisationNumber!!, navn = organisationName))),
                         tema = "SYM",
                         kanalReferanseId = msgId,
                         forsendelseInnsendt = sendDate,
