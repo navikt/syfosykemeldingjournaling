@@ -1,13 +1,16 @@
 package no.nav.syfo.model
 
+import com.fasterxml.jackson.annotation.JsonInclude
 import java.time.ZonedDateTime
 
+@JsonInclude(JsonInclude.Include.NON_NULL)
 data class MottaInngaandeForsendelseResultat(
     val journalpostId: String,
     val journalTilstand: String,
     val dokumentIdList: List<String>
 )
 
+@JsonInclude(JsonInclude.Include.NON_NULL)
 data class MottaInngaaendeForsendelse(
     val forsokEndeligJF: Boolean,
     val forsendelseInformasjon: ForsendelseInformasjon,
