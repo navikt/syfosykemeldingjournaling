@@ -5,6 +5,7 @@ import java.time.LocalDateTime
 
 data class Sykmelding(
     val id: String,
+    val msgid: String,
     val pasientAktoerId: String,
     val medisinskVurdering: MedisinskVurdering,
     val skjermesForPasient: Boolean,
