@@ -193,10 +193,18 @@ suspend fun onJournalRequest(
 
     sakResponse.await()
 
-    val journalpost = createJournalpost(env, receivedSykmelding.legekontorOrgName,
-            receivedSykmelding.legekontorOrgNr, receivedSykmelding.sykmelding.pasientAktoerId, receivedSykmelding.msgId,
-            saksId, receivedSykmelding.sykmelding.behandletTidspunkt.atZone(ZoneId.systemDefault()), receivedSykmelding.mottattDato.atZone(ZoneId.systemDefault()), pdf.await(),
-            objectMapper.writeValueAsBytes(receivedSykmelding.sykmelding), stsClient).await()
+    log.info(objectMapper.writeValueAsString(createJournalpostPayload(receivedSykmelding.legekontorOrgName, receivedSykmelding.legekontorOrgNr,
+            receivedSykmelding.sykmelding.pasientAktoerId, receivedSykmelding.msgId, saksId,
+            receivedSykmelding.sykmelding.behandletTidspunkt.atZone(ZoneId.systemDefault()),
+            receivedSykmelding.mottattDato.atZone(ZoneId.systemDefault()), "abcde".toByteArray(Charsets.UTF_8),
+            "abcde".toByteArray(Charsets.UTF_8))))
+
+    val journalpost = createJournalpost(env, stsClient, receivedSykmelding.sykmelding.id,
+            createJournalpostPayload(receivedSykmelding.legekontorOrgName, receivedSykmelding.legekontorOrgNr,
+                    receivedSykmelding.sykmelding.pasientAktoerId, receivedSykmelding.msgId, saksId,
+                    receivedSykmelding.sykmelding.behandletTidspunkt.atZone(ZoneId.systemDefault()),
+                    receivedSykmelding.mottattDato.atZone(ZoneId.systemDefault()), pdf.await(),
+                    objectMapper.writeValueAsBytes(receivedSykmelding.sykmelding))).await()
 
     val registerJournal = RegisterJournal().apply {
         journalpostKilde = "AS36"
@@ -253,58 +261,63 @@ fun createSak(
     }
 }
 
+fun createJournalpostPayload(
+        organisationName: String,
+        organisationNumber: String?,
+        userAktoerId: String,
+        msgId: String,
+        caseId: String,
+        sendDate: ZonedDateTime,
+        receivedDate: ZonedDateTime,
+        pdf: ByteArray,
+        jsonSykmelding: ByteArray
+) = MottaInngaaendeForsendelse(
+        forsokEndeligJF = true,
+        forsendelseInformasjon = ForsendelseInformasjon(
+                bruker = AktoerWrapper(Aktoer(person = Person(ident = userAktoerId))),
+                avsender = AktoerWrapper(Aktoer(organisasjon = Organisasjon(orgnr = organisationNumber!!, navn = organisationName))),
+                tema = "SYM",
+                kanalReferanseId = msgId,
+                forsendelseInnsendt = sendDate,
+                forsendelseMottatt = receivedDate,
+                mottaksKanal = "EIA", // TODO
+                tittel = "Sykmelding",
+                arkivSak = ArkivSak(
+                        arkivSakSystem = "FS22",
+                        arkivSakId = caseId
+                )
+        ),
+        tilleggsopplysninger = listOf(),
+        dokumentInfoHoveddokument = DokumentInfo(
+                tittel = "Sykmelding",
+                dokumentkategori = "Sykmelding",
+                dokumentVariant = listOf(
+                        DokumentVariant(
+                                arkivFilType = "PDFA",
+                                variantFormat = "ARKIV",
+                                dokument = pdf
+                        ),
+                        DokumentVariant(
+                                arkivFilType = "JSON",
+                                variantFormat = "ORIGINAL", // TODO: PRODUKSJON?
+                                dokument = jsonSykmelding
+                        )
+                )
+        ),
+        dokumentInfoVedlegg = listOf()
+)
+
 @KtorExperimentalAPI
 fun createJournalpost(
     env: Environment,
-    organisationName: String,
-    organisationNumber: String?,
-    userAktoerId: String,
-    msgId: String,
-    caseId: String,
-    sendDate: ZonedDateTime,
-    receivedDate: ZonedDateTime,
-    pdf: ByteArray,
-    jsonSykmelding: ByteArray,
-    stsClient: StsOidcClient
-): Deferred<MottaInngaandeForsendelseResultat> = httpClient.asyncHttp("dokmotinngaaende", msgId) {
+    stsClient: StsOidcClient,
+    trackingId: String,
+    mottaInngaaendeForsendelse: MottaInngaaendeForsendelse
+): Deferred<MottaInngaandeForsendelseResultat> = httpClient.asyncHttp("dokmotinngaaende", trackingId) {
     httpClient.post<MottaInngaandeForsendelseResultat>(env.dokmotMottaInngaaendeUrl) {
         contentType(ContentType.Application.Json)
         header("Authorization", "Bearer ${stsClient.oidcToken().access_token}")
-        body = MottaInngaaendeForsendelse(
-                forsokEndeligJF = true,
-                forsendelseInformasjon = ForsendelseInformasjon(
-                        bruker = AktoerWrapper(Aktoer(person = Person(ident = userAktoerId))),
-                        avsender = AktoerWrapper(Aktoer(organisasjon = Organisasjon(orgnr = organisationNumber!!, navn = organisationName))),
-                        tema = "SYM",
-                        kanalReferanseId = msgId,
-                        forsendelseInnsendt = sendDate,
-                        forsendelseMottatt = receivedDate,
-                        mottaksKanal = "EIA", // TODO
-                        tittel = "Sykmelding",
-                        arkivSak = ArkivSak(
-                                arkivSakSystem = "FS22",
-                                arkivSakId = caseId
-                        )
-                ),
-                tilleggsopplysninger = listOf(),
-                dokumentInfoHoveddokument = DokumentInfo(
-                        tittel = "Sykmelding",
-                        dokumentkategori = "Sykmelding",
-                        dokumentVariant = listOf(
-                                DokumentVariant(
-                                        arkivFilType = "PDFA",
-                                        variantFormat = "ARKIV",
-                                        dokument = pdf
-                                ),
-                                DokumentVariant(
-                                        arkivFilType = "JSON",
-                                        variantFormat = "ORIGINAL", // TODO: PRODUKSJON?
-                                        dokument = jsonSykmelding
-                                )
-                        )
-                ),
-                dokumentInfoVedlegg = listOf()
-        )
+        body = mottaInngaaendeForsendelse
     }
 }
 
