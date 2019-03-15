@@ -46,6 +46,7 @@ import no.nav.syfo.model.ForsendelseInformasjon
 import no.nav.syfo.model.MottaInngaaendeForsendelse
 import no.nav.syfo.model.MottaInngaandeForsendelseResultat
 import no.nav.syfo.model.OpprettSak
+import no.nav.syfo.model.OpprettSakResponse
 import no.nav.syfo.model.Organisasjon
 import no.nav.syfo.model.Pasient
 import no.nav.syfo.model.PdfPayload
@@ -183,15 +184,15 @@ suspend fun onJournalRequest(
 
     val pdfPayload = createPdfPayload(receivedSykmelding)
 
-    val sakResponse = createSak(env, receivedSykmelding.sykmelding.pasientAktoerId, saksId,
+    val sakResponseDeferred = createSak(env, receivedSykmelding.sykmelding.pasientAktoerId, saksId,
             receivedSykmelding.msgId, stsClient)
     val pdf = createPdf(pdfPayload)
-    log.debug("Response from request to create sak, {}", keyValue("response", sakResponse))
     log.info("Created a case $logKeys", *logValues)
 
     log.info("PDF generated $logKeys", *logValues)
 
-    sakResponse.await()
+    val sakResponse = sakResponseDeferred.await()
+    log.debug("Response from request to create sak, {}", keyValue("response", sakResponse))
 
     /*log.info(objectMapper.writeValueAsString(createJournalpostPayload(receivedSykmelding.legekontorOrgName, receivedSykmelding.legekontorOrgNr,
             receivedSykmelding.sykmelding.pasientAktoerId, receivedSykmelding.msgId, saksId,
@@ -201,7 +202,7 @@ suspend fun onJournalRequest(
 
     val journalpost = createJournalpost(env, stsClient, receivedSykmelding.sykmelding.id,
             createJournalpostPayload(receivedSykmelding.legekontorOrgName, receivedSykmelding.legekontorOrgNr,
-                    receivedSykmelding.sykmelding.pasientAktoerId, receivedSykmelding.msgId, saksId,
+                    receivedSykmelding.sykmelding.pasientAktoerId, receivedSykmelding.msgId, sakResponse.id.toString(),
                     receivedSykmelding.sykmelding.behandletTidspunkt.atZone(ZoneId.systemDefault()),
                     receivedSykmelding.mottattDato.atZone(ZoneId.systemDefault()), pdf.await(),
                     objectMapper.writeValueAsBytes(receivedSykmelding.sykmelding))).await()
@@ -246,8 +247,8 @@ fun createSak(
     saksId: String,
     msgId: String,
     stsClient: StsOidcClient
-): Deferred<String> = httpClient.asyncHttp("sak_opprett", saksId) {
-    httpClient.post<String>(env.opprettSakUrl) {
+): Deferred<OpprettSakResponse> = httpClient.asyncHttp("sak_opprett", saksId) {
+    httpClient.post<OpprettSakResponse>(env.opprettSakUrl) {
         contentType(ContentType.Application.Json)
         header("X-Correlation-ID", msgId)
         header("Authorization", "Bearer ${stsClient.oidcToken().access_token}")
