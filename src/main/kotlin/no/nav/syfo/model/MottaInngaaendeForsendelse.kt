@@ -7,7 +7,7 @@ import java.time.ZonedDateTime
 data class MottaInngaandeForsendelseResultat(
     val journalpostId: String,
     val journalTilstand: String,
-    val dokumentIdList: List<String>
+    val dokumentIdListe: List<String>
 )
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
