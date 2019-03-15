@@ -29,8 +29,8 @@ data class ForsendelseInformasjon(
 )
 
 data class Aktoer(
-        val organisasjon: Organisasjon? = null,
-        val person: Person? = null
+    val organisasjon: Organisasjon? = null,
+    val person: Person? = null
 )
 
 data class Person(
@@ -39,8 +39,8 @@ data class Person(
 )
 
 data class Organisasjon(
-        val orgnr: String,
-        val navn: String? = null
+    val orgnr: String,
+    val navn: String? = null
 )
 
 data class ArkivSak(
