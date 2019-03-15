@@ -73,6 +73,7 @@ val objectMapper: ObjectMapper = ObjectMapper().apply {
 }
 
 val log: Logger = LoggerFactory.getLogger("smsak")
+lateinit var ktorObjectMapper: ObjectMapper
 
 data class ApplicationState(var running: Boolean = true, var initialized: Boolean = false)
 
@@ -86,6 +87,7 @@ val httpClient = HttpClient(CIO) {
             registerKotlinModule()
             registerModule(JavaTimeModule())
             configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false)
+            ktorObjectMapper = this
         }
     }
 }
@@ -190,6 +192,13 @@ suspend fun onJournalRequest(
     log.info("PDF generated $logKeys", *logValues)
 
     sakResponse.await()
+
+    val toLog = createJournalpost(env, receivedSykmelding.legekontorOrgName,
+            receivedSykmelding.legekontorOrgNr, receivedSykmelding.sykmelding.pasientAktoerId, receivedSykmelding.msgId,
+            saksId, receivedSykmelding.sykmelding.behandletTidspunkt.atZone(ZoneId.systemDefault()),
+            receivedSykmelding.mottattDato.atZone(ZoneId.systemDefault()), "abcde".toByteArray(Charsets.UTF_8),
+            "abcde".toByteArray(Charsets.UTF_8), stsClient).await()
+    log.info(objectMapper.writeValueAsString(toLog))
     val journalpost = createJournalpost(env, receivedSykmelding.legekontorOrgName,
             receivedSykmelding.legekontorOrgNr, receivedSykmelding.sykmelding.pasientAktoerId, receivedSykmelding.msgId,
             saksId, receivedSykmelding.sykmelding.behandletTidspunkt.atZone(ZoneId.systemDefault()), receivedSykmelding.mottattDato.atZone(ZoneId.systemDefault()), pdf.await(),
