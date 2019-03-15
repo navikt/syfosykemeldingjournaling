@@ -80,7 +80,7 @@ data class ApplicationState(var running: Boolean = true, var initialized: Boolea
 @KtorExperimentalAPI
 val httpClient = HttpClient(CIO) {
     install(Logging) {
-        level = LogLevel.HEADERS
+        level = LogLevel.ALL
     }
     install(JsonFeature) {
         serializer = JacksonSerializer {
@@ -193,11 +193,11 @@ suspend fun onJournalRequest(
 
     sakResponse.await()
 
-    log.info(objectMapper.writeValueAsString(createJournalpostPayload(receivedSykmelding.legekontorOrgName, receivedSykmelding.legekontorOrgNr,
+    /*log.info(objectMapper.writeValueAsString(createJournalpostPayload(receivedSykmelding.legekontorOrgName, receivedSykmelding.legekontorOrgNr,
             receivedSykmelding.sykmelding.pasientAktoerId, receivedSykmelding.msgId, saksId,
             receivedSykmelding.sykmelding.behandletTidspunkt.atZone(ZoneId.systemDefault()),
             receivedSykmelding.mottattDato.atZone(ZoneId.systemDefault()), "abcde".toByteArray(Charsets.UTF_8),
-            "abcde".toByteArray(Charsets.UTF_8))))
+            "abcde".toByteArray(Charsets.UTF_8))))*/
 
     val journalpost = createJournalpost(env, stsClient, receivedSykmelding.sykmelding.id,
             createJournalpostPayload(receivedSykmelding.legekontorOrgName, receivedSykmelding.legekontorOrgNr,
