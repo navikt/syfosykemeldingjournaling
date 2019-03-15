@@ -262,15 +262,15 @@ fun createSak(
 }
 
 fun createJournalpostPayload(
-        organisationName: String,
-        organisationNumber: String?,
-        userAktoerId: String,
-        msgId: String,
-        caseId: String,
-        sendDate: ZonedDateTime,
-        receivedDate: ZonedDateTime,
-        pdf: ByteArray,
-        jsonSykmelding: ByteArray
+    organisationName: String,
+    organisationNumber: String?,
+    userAktoerId: String,
+    msgId: String,
+    caseId: String,
+    sendDate: ZonedDateTime,
+    receivedDate: ZonedDateTime,
+    pdf: ByteArray,
+    jsonSykmelding: ByteArray
 ) = MottaInngaaendeForsendelse(
         forsokEndeligJF = true,
         forsendelseInformasjon = ForsendelseInformasjon(
