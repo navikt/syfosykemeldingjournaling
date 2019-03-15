@@ -2,7 +2,7 @@ import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 import com.github.jengelman.gradle.plugins.shadow.transformers.ServiceFileTransformer
 
 group = "no.nav.syfo"
-version = "1.0.0"
+version = "1.0.0-SNAPSHOT"
 
 val confluentVersion = "5.0.0"
 val coroutinesVersion = "1.1.1"
