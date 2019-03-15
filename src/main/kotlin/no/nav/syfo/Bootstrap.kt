@@ -45,8 +45,10 @@ import no.nav.syfo.model.ForsendelseInformasjon
 import no.nav.syfo.model.MottaInngaaendeForsendelse
 import no.nav.syfo.model.MottaInngaandeForsendelseResultat
 import no.nav.syfo.model.OpprettSak
+import no.nav.syfo.model.Organisasjon
 import no.nav.syfo.model.Pasient
 import no.nav.syfo.model.PdfPayload
+import no.nav.syfo.model.Person
 import no.nav.syfo.model.ReceivedSykmelding
 import no.nav.syfo.sak.avro.RegisterJournal
 import org.apache.kafka.clients.consumer.KafkaConsumer
@@ -267,8 +269,8 @@ fun createJournalpost(
         body = MottaInngaaendeForsendelse(
                 forsokEndeligJF = true,
                 forsendelseInformasjon = ForsendelseInformasjon(
-                        bruker = Aktoer(aktoerId = userAktoerId),
-                        avsender = Aktoer(orgnr = organisationNumber, navn = organisationName),
+                        bruker = Aktoer(person = Person(aktoerId = userAktoerId)),
+                        avsender = Aktoer(organisasjon = Organisasjon(orgnr = organisationNumber!!, navn = organisationName)),
                         tema = "SYM",
                         kanalReferanseId = msgId,
                         forsendelseInnsendt = sendDate,

@@ -29,10 +29,18 @@ data class ForsendelseInformasjon(
 )
 
 data class Aktoer(
-    val orgnr: String? = null,
+        val organisasjon: Organisasjon? = null,
+        val person: Person? = null
+)
+
+data class Person(
     val aktoerId: String? = null,
-    val fnr: String? = null,
-    val navn: String? = null
+    val fnr: String? = null
+)
+
+data class Organisasjon(
+        val orgnr: String,
+        val navn: String? = null
 )
 
 data class ArkivSak(
