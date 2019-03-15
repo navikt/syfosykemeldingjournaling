@@ -193,12 +193,6 @@ suspend fun onJournalRequest(
 
     sakResponse.await()
 
-    val toLog = createJournalpost(env, receivedSykmelding.legekontorOrgName,
-            receivedSykmelding.legekontorOrgNr, receivedSykmelding.sykmelding.pasientAktoerId, receivedSykmelding.msgId,
-            saksId, receivedSykmelding.sykmelding.behandletTidspunkt.atZone(ZoneId.systemDefault()),
-            receivedSykmelding.mottattDato.atZone(ZoneId.systemDefault()), "abcde".toByteArray(Charsets.UTF_8),
-            "abcde".toByteArray(Charsets.UTF_8), stsClient).await()
-    log.info(objectMapper.writeValueAsString(toLog))
     val journalpost = createJournalpost(env, receivedSykmelding.legekontorOrgName,
             receivedSykmelding.legekontorOrgNr, receivedSykmelding.sykmelding.pasientAktoerId, receivedSykmelding.msgId,
             saksId, receivedSykmelding.sykmelding.behandletTidspunkt.atZone(ZoneId.systemDefault()), receivedSykmelding.mottattDato.atZone(ZoneId.systemDefault()), pdf.await(),

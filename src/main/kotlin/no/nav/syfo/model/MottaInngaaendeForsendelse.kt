@@ -19,6 +19,7 @@ data class MottaInngaaendeForsendelse(
     val dokumentInfoVedlegg: List<DokumentInfo>
 )
 
+@JsonInclude(JsonInclude.Include.NON_NULL)
 data class ForsendelseInformasjon(
     val bruker: AktoerWrapper,
     val avsender: AktoerWrapper,
@@ -31,35 +32,42 @@ data class ForsendelseInformasjon(
     val arkivSak: ArkivSak?
 )
 
+@JsonInclude(JsonInclude.Include.NON_NULL)
 data class AktoerWrapper(
     val aktoer: Aktoer
 )
 
+@JsonInclude(JsonInclude.Include.NON_NULL)
 data class Aktoer(
     val organisasjon: Organisasjon? = null,
     val person: Person? = null
 )
 
+@JsonInclude(JsonInclude.Include.NON_NULL)
 data class Person(
     val ident: String? = null,
     val fnr: String? = null
 )
 
+@JsonInclude(JsonInclude.Include.NON_NULL)
 data class Organisasjon(
     val orgnr: String,
     val navn: String? = null
 )
 
+@JsonInclude(JsonInclude.Include.NON_NULL)
 data class ArkivSak(
     val arkivSakSystem: String,
     val arkivSakId: String
 )
 
+@JsonInclude(JsonInclude.Include.NON_NULL)
 data class Tilleggsopplysning(
     val nokkel: String,
     val verdi: String
 )
 
+@JsonInclude(JsonInclude.Include.NON_NULL)
 data class DokumentInfo(
     val dokumentTypeId: String? = null,
     val tittel: String?,
@@ -68,6 +76,7 @@ data class DokumentInfo(
     val dokumentVariant: List<DokumentVariant>
 )
 
+@JsonInclude(JsonInclude.Include.NON_NULL)
 data class DokumentVariant(
     val arkivFilType: String,
     val variantFormat: String,
