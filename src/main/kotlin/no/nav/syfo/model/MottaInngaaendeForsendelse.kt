@@ -17,8 +17,8 @@ data class MottaInngaaendeForsendelse(
 )
 
 data class ForsendelseInformasjon(
-    val bruker: Aktoer,
-    val avsender: Aktoer,
+    val bruker: AktoerWrapper,
+    val avsender: AktoerWrapper,
     val tema: String,
     val kanalReferanseId: String,
     val forsendelseMottatt: ZonedDateTime,
@@ -28,13 +28,17 @@ data class ForsendelseInformasjon(
     val arkivSak: ArkivSak?
 )
 
+data class AktoerWrapper(
+    val aktoer: Aktoer
+)
+
 data class Aktoer(
     val organisasjon: Organisasjon? = null,
     val person: Person? = null
 )
 
 data class Person(
-    val aktoerId: String? = null,
+    val ident: String? = null,
     val fnr: String? = null
 )
 
