@@ -59,11 +59,9 @@ import org.apache.kafka.clients.producer.ProducerRecord
 import org.apache.kafka.common.serialization.StringDeserializer
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import java.nio.file.Files
 import java.nio.file.Paths
 import java.time.Duration
 import java.time.ZoneId
-import java.time.ZonedDateTime
 import java.util.UUID
 import java.util.concurrent.TimeUnit
 
@@ -97,7 +95,7 @@ val httpClient = HttpClient(CIO) {
 fun main() = runBlocking {
     DefaultExports.initialize()
     val env = Environment()
-    val credentials = objectMapper.readValue<VaultCredentials>(Files.newInputStream(Paths.get("/var/run/secrets/nais.io/vault/credentials.json")))
+    val credentials = objectMapper.readValue<VaultCredentials>(Paths.get("/var/run/secrets/nais.io/vault/credentials.json").toFile())
     val applicationState = ApplicationState()
 
     val applicationServer = embeddedServer(Netty, env.applicationPort) {
@@ -194,18 +192,9 @@ suspend fun onJournalRequest(
     val sakResponse = sakResponseDeferred.await()
     log.debug("Response from request to create sak, {}", keyValue("response", sakResponse))
 
-    /*log.info(objectMapper.writeValueAsString(createJournalpostPayload(receivedSykmelding.legekontorOrgName, receivedSykmelding.legekontorOrgNr,
-            receivedSykmelding.sykmelding.pasientAktoerId, receivedSykmelding.msgId, saksId,
-            receivedSykmelding.sykmelding.behandletTidspunkt.atZone(ZoneId.systemDefault()),
-            receivedSykmelding.mottattDato.atZone(ZoneId.systemDefault()), "abcde".toByteArray(Charsets.UTF_8),
-            "abcde".toByteArray(Charsets.UTF_8))))*/
-
+    val journalpostPayload = createJournalpostPayload(receivedSykmelding, sakResponse.id.toString(), pdf.await())
     val journalpost = createJournalpost(env, stsClient, receivedSykmelding.sykmelding.id,
-            createJournalpostPayload(receivedSykmelding.legekontorOrgName, receivedSykmelding.legekontorOrgNr,
-                    receivedSykmelding.sykmelding.pasientAktoerId, receivedSykmelding.msgId, sakResponse.id.toString(),
-                    receivedSykmelding.sykmelding.behandletTidspunkt.atZone(ZoneId.systemDefault()),
-                    receivedSykmelding.mottattDato.atZone(ZoneId.systemDefault()), pdf.await(),
-                    objectMapper.writeValueAsBytes(receivedSykmelding.sykmelding))).await()
+            journalpostPayload).await()
 
     val registerJournal = RegisterJournal().apply {
         journalpostKilde = "AS36"
@@ -263,24 +252,21 @@ fun createSak(
 }
 
 fun createJournalpostPayload(
-    organisationName: String,
-    organisationNumber: String?,
-    userAktoerId: String,
-    msgId: String,
+    receivedSykmelding: ReceivedSykmelding,
     caseId: String,
-    sendDate: ZonedDateTime,
-    receivedDate: ZonedDateTime,
-    pdf: ByteArray,
-    jsonSykmelding: ByteArray
+    pdf: ByteArray
 ) = MottaInngaaendeForsendelse(
         forsokEndeligJF = true,
         forsendelseInformasjon = ForsendelseInformasjon(
-                bruker = AktoerWrapper(Aktoer(person = Person(ident = userAktoerId))),
-                avsender = AktoerWrapper(Aktoer(organisasjon = Organisasjon(orgnr = organisationNumber, navn = organisationName))),
+                bruker = AktoerWrapper(Aktoer(person = Person(ident = receivedSykmelding.sykmelding.pasientAktoerId))),
+                avsender = AktoerWrapper(Aktoer(organisasjon = Organisasjon(
+                        orgnr = receivedSykmelding.legekontorOrgNr,
+                        navn = receivedSykmelding.legekontorOrgName
+                ))),
                 tema = "SYM",
-                kanalReferanseId = msgId,
-                forsendelseInnsendt = sendDate,
-                forsendelseMottatt = receivedDate,
+                kanalReferanseId = receivedSykmelding.msgId,
+                forsendelseInnsendt = receivedSykmelding.sykmelding.behandletTidspunkt.atZone(ZoneId.systemDefault()),
+                forsendelseMottatt = receivedSykmelding.mottattDato.atZone(ZoneId.systemDefault()),
                 mottaksKanal = "EIA", // TODO
                 tittel = "Sykmelding",
                 arkivSak = ArkivSak(
@@ -301,7 +287,7 @@ fun createJournalpostPayload(
                         DokumentVariant(
                                 arkivFilType = "JSON",
                                 variantFormat = "ORIGINAL", // TODO: PRODUKSJON?
-                                dokument = jsonSykmelding
+                                dokument = objectMapper.writeValueAsBytes(receivedSykmelding.sykmelding)
                         )
                 )
         ),
