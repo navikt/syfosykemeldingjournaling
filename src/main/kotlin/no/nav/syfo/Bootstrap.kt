@@ -9,33 +9,25 @@ import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import io.confluent.kafka.serializers.KafkaAvroSerializer
 import io.ktor.application.Application
 import io.ktor.client.HttpClient
-import io.ktor.client.call.call
 import io.ktor.client.engine.cio.CIO
-import io.ktor.client.features.BadResponseStatusException
 import io.ktor.client.features.json.JacksonSerializer
 import io.ktor.client.features.json.JsonFeature
 import io.ktor.client.features.logging.LogLevel
 import io.ktor.client.features.logging.Logging
-import io.ktor.client.request.header
-import io.ktor.client.request.post
-import io.ktor.client.response.readBytes
-import io.ktor.client.response.readText
-import io.ktor.http.ContentType
-import io.ktor.http.HttpMethod
-import io.ktor.http.contentType
 import io.ktor.routing.routing
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
 import io.ktor.util.KtorExperimentalAPI
 import io.prometheus.client.hotspot.DefaultExports
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Deferred
-import kotlinx.coroutines.async
+import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import net.logstash.logback.argument.StructuredArguments.keyValue
 import no.nav.syfo.api.registerNaisApi
+import no.nav.syfo.client.DokmotClient
+import no.nav.syfo.client.PdfgenClient
+import no.nav.syfo.client.SakClient
 import no.nav.syfo.client.StsOidcClient
 import no.nav.syfo.model.Aktoer
 import no.nav.syfo.model.AktoerWrapper
@@ -44,9 +36,6 @@ import no.nav.syfo.model.DokumentInfo
 import no.nav.syfo.model.DokumentVariant
 import no.nav.syfo.model.ForsendelseInformasjon
 import no.nav.syfo.model.MottaInngaaendeForsendelse
-import no.nav.syfo.model.MottaInngaandeForsendelseResultat
-import no.nav.syfo.model.OpprettSak
-import no.nav.syfo.model.OpprettSakResponse
 import no.nav.syfo.model.Organisasjon
 import no.nav.syfo.model.Pasient
 import no.nav.syfo.model.PdfPayload
@@ -63,6 +52,7 @@ import java.nio.file.Paths
 import java.time.Duration
 import java.time.ZoneId
 import java.util.UUID
+import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
 val objectMapper: ObjectMapper = ObjectMapper().apply {
@@ -92,7 +82,7 @@ val httpClient = HttpClient(CIO) {
 }
 
 @KtorExperimentalAPI
-fun main() = runBlocking {
+fun main() = runBlocking(Executors.newFixedThreadPool(4).asCoroutineDispatcher()) {
     DefaultExports.initialize()
     val env = Environment()
     val credentials = objectMapper.readValue<VaultCredentials>(Paths.get("/var/run/secrets/nais.io/vault/credentials.json").toFile())
@@ -103,6 +93,9 @@ fun main() = runBlocking {
     }.start(wait = false)
 
     val stsClient = StsOidcClient(credentials.serviceuserUsername, credentials.serviceuserPassword)
+    val sakClient = SakClient(env.opprettSakUrl, stsClient, coroutineContext)
+    val dokmotClient = DokmotClient(env.dokmotMottaInngaaendeUrl, stsClient, coroutineContext)
+    val pdfgenClient = PdfgenClient(coroutineContext)
 
     try {
         val kafkaBaseConfig = loadBaseConfig(env, credentials)
@@ -121,7 +114,7 @@ fun main() = runBlocking {
                         env.smpapirManualHandlingTopic
                 ))
                 try {
-                    listen(env, consumer, producer, applicationState, stsClient)
+                    listen(env, consumer, producer, applicationState, sakClient, dokmotClient, pdfgenClient)
                 } finally {
                     log.error("Coroutine failed, {}, shutting down", keyValue("context", coroutineContext.toString()))
                     applicationState.running = false
@@ -146,13 +139,15 @@ suspend fun listen(
     consumer: KafkaConsumer<String, String>,
     producer: KafkaProducer<String, RegisterJournal>,
     applicationState: ApplicationState,
-    stsClient: StsOidcClient
+    sakClient: SakClient,
+    dokmotClient: DokmotClient,
+    pdfgenClient: PdfgenClient
 ) {
     while (applicationState.running) {
         consumer.poll(Duration.ofMillis(0)).forEach {
             try {
                 val receivedSykmelding: ReceivedSykmelding = objectMapper.readValue(it.value())
-                onJournalRequest(env, receivedSykmelding, producer, stsClient)
+                onJournalRequest(env, receivedSykmelding, producer, sakClient, dokmotClient, pdfgenClient)
             } catch (e: Exception) {
                 log.error("Error occurred while trying to handle journaling request", e)
                 throw e
@@ -168,7 +163,9 @@ suspend fun onJournalRequest(
     env: Environment,
     receivedSykmelding: ReceivedSykmelding,
     producer: KafkaProducer<String, RegisterJournal>,
-    stsClient: StsOidcClient
+    sakClient: SakClient,
+    dokmotClient: DokmotClient,
+    pdfgenClient: PdfgenClient
 ) {
     val logValues = arrayOf(
             keyValue("msgId", receivedSykmelding.msgId),
@@ -182,9 +179,9 @@ suspend fun onJournalRequest(
 
     val pdfPayload = createPdfPayload(receivedSykmelding)
 
-    val sakResponseDeferred = createSak(env, receivedSykmelding.sykmelding.pasientAktoerId, saksId,
-            receivedSykmelding.msgId, stsClient)
-    val pdf = createPdf(pdfPayload)
+    val sakResponseDeferred = sakClient.createSak(receivedSykmelding.sykmelding.pasientAktoerId, saksId,
+            receivedSykmelding.msgId)
+    val pdf = pdfgenClient.createPdf(pdfPayload, receivedSykmelding.msgId)
     log.info("Created a case $logKeys", *logValues)
 
     log.info("PDF generated $logKeys", *logValues)
@@ -193,8 +190,7 @@ suspend fun onJournalRequest(
     log.debug("Response from request to create sak, {}", keyValue("response", sakResponse))
 
     val journalpostPayload = createJournalpostPayload(receivedSykmelding, sakResponse.id.toString(), pdf.await())
-    val journalpost = createJournalpost(env, stsClient, receivedSykmelding.sykmelding.id,
-            journalpostPayload).await()
+    val journalpost = dokmotClient.createJournalpost(receivedSykmelding.sykmelding.id, journalpostPayload).await()
 
     val registerJournal = RegisterJournal().apply {
         journalpostKilde = "AS36"
@@ -205,50 +201,6 @@ suspend fun onJournalRequest(
     producer.send(ProducerRecord(env.journalCreatedTopic, receivedSykmelding.msgId, registerJournal))
 
     log.info("Message successfully persisted in Joark {} $logKeys", keyValue("journalpostId", journalpost.journalpostId), *logValues)
-}
-
-@KtorExperimentalAPI
-fun createPdf(payload: PdfPayload): Deferred<ByteArray> = httpClient.async {
-    httpClient.call("http://pdf-gen/api/v1/genpdf/syfosm/syfosm") {
-        contentType(ContentType.Application.Json)
-        method = HttpMethod.Post
-        body = payload
-    }.response.readBytes()
-}
-
-fun <T> CoroutineScope.asyncHttp(name: String, trackingId: String, block: suspend () -> T): Deferred<T> = async {
-    try {
-        block()
-    } catch (e: BadResponseStatusException) {
-        log.error("Failed while trying to contact {} {}, {}",
-                keyValue("service", name),
-                keyValue("trackingId", trackingId),
-                keyValue("message", e.response.readText(Charsets.UTF_8))
-        )
-        throw e
-    }
-}
-
-@KtorExperimentalAPI
-fun createSak(
-    env: Environment,
-    pasientAktoerId: String,
-    saksId: String,
-    msgId: String,
-    stsClient: StsOidcClient
-): Deferred<OpprettSakResponse> = httpClient.asyncHttp("sak_opprett", saksId) {
-    httpClient.post<OpprettSakResponse>(env.opprettSakUrl) {
-        contentType(ContentType.Application.Json)
-        header("X-Correlation-ID", msgId)
-        header("Authorization", "Bearer ${stsClient.oidcToken().access_token}")
-        body = OpprettSak(
-                tema = "SYM",
-                applikasjon = "syfomottak",
-                aktoerId = pasientAktoerId,
-                orgnr = null,
-                fagsakNr = saksId
-        )
-    }
 }
 
 fun createJournalpostPayload(
@@ -293,20 +245,6 @@ fun createJournalpostPayload(
         ),
         dokumentInfoVedlegg = listOf()
 )
-
-@KtorExperimentalAPI
-fun createJournalpost(
-    env: Environment,
-    stsClient: StsOidcClient,
-    trackingId: String,
-    mottaInngaaendeForsendelse: MottaInngaaendeForsendelse
-): Deferred<MottaInngaandeForsendelseResultat> = httpClient.asyncHttp("dokmotinngaaende", trackingId) {
-    httpClient.post<MottaInngaandeForsendelseResultat>(env.dokmotMottaInngaaendeUrl) {
-        contentType(ContentType.Application.Json)
-        header("Authorization", "Bearer ${stsClient.oidcToken().access_token}")
-        body = mottaInngaaendeForsendelse
-    }
-}
 
 fun createPdfPayload(
     receivedSykmelding: ReceivedSykmelding
