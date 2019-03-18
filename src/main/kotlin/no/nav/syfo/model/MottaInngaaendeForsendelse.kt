@@ -51,7 +51,7 @@ data class Person(
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 data class Organisasjon(
-    val orgnr: String,
+    val orgnr: String?,
     val navn: String? = null
 )
 

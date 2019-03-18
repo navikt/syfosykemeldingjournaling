@@ -276,7 +276,7 @@ fun createJournalpostPayload(
         forsokEndeligJF = true,
         forsendelseInformasjon = ForsendelseInformasjon(
                 bruker = AktoerWrapper(Aktoer(person = Person(ident = userAktoerId))),
-                avsender = AktoerWrapper(Aktoer(organisasjon = Organisasjon(orgnr = organisationNumber!!, navn = organisationName))),
+                avsender = AktoerWrapper(Aktoer(organisasjon = Organisasjon(orgnr = organisationNumber, navn = organisationName))),
                 tema = "SYM",
                 kanalReferanseId = msgId,
                 forsendelseInnsendt = sendDate,
