@@ -5,7 +5,7 @@ import io.ktor.client.response.readText
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.async
-import net.logstash.logback.argument.StructuredArguments
+import net.logstash.logback.argument.StructuredArguments.keyValue
 import no.nav.syfo.log
 
 fun <T> CoroutineScope.httpAsync(name: String, trackingId: String, block: suspend () -> T): Deferred<T> = async {
@@ -13,9 +13,9 @@ fun <T> CoroutineScope.httpAsync(name: String, trackingId: String, block: suspen
         block()
     } catch (e: BadResponseStatusException) {
         log.error("Failed while trying to contact {} {}, {}",
-                StructuredArguments.keyValue("service", name),
-                StructuredArguments.keyValue("trackingId", trackingId),
-                StructuredArguments.keyValue("message", e.response.readText(Charsets.UTF_8))
+                keyValue("service", name),
+                keyValue("trackingId", trackingId),
+                keyValue("message", e.response.readText(Charsets.UTF_8))
         )
         throw e
     }
