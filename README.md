@@ -23,7 +23,7 @@ To build locally and run the integration tests you can simply run `./gradlew sha
 `gradlew.bat shadowJar`
 
 #### Creating a docker image
-Creating a docker image should be as simple as `docker build -t syfosykemeldingregler .`
+Creating a docker image should be as simple as `docker build -t syfosmsak .`
 
 
 ## Contact us

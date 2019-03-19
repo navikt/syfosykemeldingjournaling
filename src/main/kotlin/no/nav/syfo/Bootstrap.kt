@@ -12,8 +12,6 @@ import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.features.json.JacksonSerializer
 import io.ktor.client.features.json.JsonFeature
-import io.ktor.client.features.logging.LogLevel
-import io.ktor.client.features.logging.Logging
 import io.ktor.routing.routing
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
@@ -68,9 +66,6 @@ data class ApplicationState(var running: Boolean = true, var initialized: Boolea
 
 @KtorExperimentalAPI
 val httpClient = HttpClient(CIO) {
-    install(Logging) {
-        level = LogLevel.INFO
-    }
     install(JsonFeature) {
         serializer = JacksonSerializer {
             registerKotlinModule()
