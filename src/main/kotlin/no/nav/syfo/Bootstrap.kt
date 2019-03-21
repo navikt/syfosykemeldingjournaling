@@ -49,7 +49,6 @@ import org.slf4j.LoggerFactory
 import java.nio.file.Paths
 import java.time.Duration
 import java.time.ZoneId
-import java.util.UUID
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
@@ -164,13 +163,14 @@ suspend fun onJournalRequest(
 ) {
     val logValues = arrayOf(
             keyValue("msgId", receivedSykmelding.msgId),
-            keyValue("smId", receivedSykmelding.navLogId),
+            keyValue("mottakId", receivedSykmelding.navLogId),
+            keyValue("sykmeldingId", receivedSykmelding.sykmelding.id),
             keyValue("orgNr", receivedSykmelding.legekontorOrgNr)
     )
     val logKeys = logValues.joinToString(prefix = "(", postfix = ")", separator = ", ") { "{}" }
     log.info("Received a SM2013, trying to persist in Joark $logKeys", logValues)
 
-    val saksId = UUID.randomUUID().toString()
+    val saksId = receivedSykmelding.sykmelding.id
 
     val pdfPayload = createPdfPayload(receivedSykmelding)
 
@@ -193,7 +193,7 @@ suspend fun onJournalRequest(
         sakId = saksId
         journalpostId = journalpost.journalpostId
     }
-    producer.send(ProducerRecord(env.journalCreatedTopic, receivedSykmelding.msgId, registerJournal))
+    producer.send(ProducerRecord(env.journalCreatedTopic, receivedSykmelding.sykmelding.id, registerJournal))
 
     log.info("Message successfully persisted in Joark {} $logKeys", keyValue("journalpostId", journalpost.journalpostId), *logValues)
 }
