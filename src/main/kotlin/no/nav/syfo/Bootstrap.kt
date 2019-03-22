@@ -192,7 +192,7 @@ suspend fun onJournalRequest(
 
     val registerJournal = RegisterJournal().apply {
         journalpostKilde = "AS36"
-        messageId = receivedSykmelding.sykmelding.id
+        messageId = receivedSykmelding.msgId
         sakId = saksId
         journalpostId = journalpost.journalpostId
     }
