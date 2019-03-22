@@ -27,6 +27,8 @@ import no.nav.syfo.client.DokmotClient
 import no.nav.syfo.client.PdfgenClient
 import no.nav.syfo.client.SakClient
 import no.nav.syfo.client.StsOidcClient
+import no.nav.syfo.metrics.CASE_CREATED_COUNTER
+import no.nav.syfo.metrics.MESSAGE_PERSISTED_IN_JOARK_COUNTER
 import no.nav.syfo.model.Aktoer
 import no.nav.syfo.model.AktoerWrapper
 import no.nav.syfo.model.ArkivSak
@@ -177,6 +179,7 @@ suspend fun onJournalRequest(
     val sakResponseDeferred = sakClient.createSak(receivedSykmelding.sykmelding.pasientAktoerId, saksId,
             receivedSykmelding.msgId)
     val pdf = pdfgenClient.createPdf(pdfPayload, receivedSykmelding.msgId)
+    CASE_CREATED_COUNTER.inc()
     log.info("Created a case $logKeys", *logValues)
 
     log.info("PDF generated $logKeys", *logValues)
@@ -194,6 +197,7 @@ suspend fun onJournalRequest(
         journalpostId = journalpost.journalpostId
     }
     producer.send(ProducerRecord(env.journalCreatedTopic, receivedSykmelding.sykmelding.id, registerJournal))
+    MESSAGE_PERSISTED_IN_JOARK_COUNTER.inc()
 
     log.info("Message successfully persisted in Joark {} $logKeys", keyValue("journalpostId", journalpost.journalpostId), *logValues)
 }
