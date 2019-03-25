@@ -1,4 +1,4 @@
 FROM navikt/java:11
 COPY build/libs/*.jar app.jar
-ENV JAVA_OPTS='-Dlogback.configurationFile=logback-remote.xml -Xmx384M -XX:+UseG1GC -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/app/heapdump.bin'
+ENV JAVA_OPTS='-Dlogback.configurationFile=logback-remote.xml'
 ENV APPLICATION_PROFILE="remote"
