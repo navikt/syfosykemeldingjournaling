@@ -18,7 +18,7 @@ class PdfgenClient(
     override val coroutineContext: CoroutineContext
 ) : CoroutineScope {
     fun createPdf(payload: PdfPayload, trackingId: String): Deferred<ByteArray> = httpAsync("pdfgen", trackingId) {
-        httpClient.call("http://pdf-gen/api/v1/genpdf/syfosm/syfosm") {
+        httpClient.call("http://syfopdfgen/api/v1/genpdf/syfosm/syfosm") {
             contentType(ContentType.Application.Json)
             method = HttpMethod.Post
             body = payload
