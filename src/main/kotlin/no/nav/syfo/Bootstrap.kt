@@ -18,6 +18,8 @@ import io.ktor.server.netty.Netty
 import io.ktor.util.KtorExperimentalAPI
 import io.prometheus.client.hotspot.DefaultExports
 import kotlinx.coroutines.asCoroutineDispatcher
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -27,6 +29,9 @@ import no.nav.syfo.client.DokmotClient
 import no.nav.syfo.client.PdfgenClient
 import no.nav.syfo.client.SakClient
 import no.nav.syfo.client.StsOidcClient
+import no.nav.syfo.kafka.loadBaseConfig
+import no.nav.syfo.kafka.toConsumerConfig
+import no.nav.syfo.kafka.toProducerConfig
 import no.nav.syfo.metrics.CASE_CREATED_COUNTER
 import no.nav.syfo.metrics.MESSAGE_PERSISTED_IN_JOARK_COUNTER
 import no.nav.syfo.model.Aktoer
@@ -162,7 +167,7 @@ suspend fun onJournalRequest(
     sakClient: SakClient,
     dokmotClient: DokmotClient,
     pdfgenClient: PdfgenClient
-) {
+) = coroutineScope {
     val logValues = arrayOf(
             keyValue("msgId", receivedSykmelding.msgId),
             keyValue("mottakId", receivedSykmelding.navLogId),
@@ -176,8 +181,9 @@ suspend fun onJournalRequest(
 
     val pdfPayload = createPdfPayload(receivedSykmelding)
 
-    val sakResponseDeferred = sakClient.createSak(receivedSykmelding.sykmelding.pasientAktoerId, saksId,
-            receivedSykmelding.msgId)
+    val sakResponseDeferred = async {
+        sakClient.createSak(receivedSykmelding.sykmelding.pasientAktoerId, saksId, receivedSykmelding.msgId)
+    }
     val pdf = pdfgenClient.createPdf(pdfPayload, receivedSykmelding.msgId)
     CASE_CREATED_COUNTER.inc()
     log.info("Created a case $logKeys", *logValues)
@@ -187,8 +193,8 @@ suspend fun onJournalRequest(
     val sakResponse = sakResponseDeferred.await()
     log.debug("Response from request to create sak, {}", keyValue("response", sakResponse))
 
-    val journalpostPayload = createJournalpostPayload(receivedSykmelding, sakResponse.id.toString(), pdf.await())
-    val journalpost = dokmotClient.createJournalpost(receivedSykmelding.sykmelding.id, journalpostPayload).await()
+    val journalpostPayload = createJournalpostPayload(receivedSykmelding, sakResponse.id.toString(), pdf)
+    val journalpost = dokmotClient.createJournalpost(receivedSykmelding.sykmelding.id, journalpostPayload)
 
     val registerJournal = RegisterJournal().apply {
         journalpostKilde = "AS36"

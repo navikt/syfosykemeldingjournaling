@@ -8,8 +8,7 @@ import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import io.ktor.util.KtorExperimentalAPI
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Deferred
-import no.nav.syfo.helpers.httpAsync
+import no.nav.syfo.helpers.retry
 import no.nav.syfo.httpClient
 import no.nav.syfo.model.OpprettSak
 import no.nav.syfo.model.OpprettSakResponse
@@ -21,11 +20,11 @@ class SakClient(
     private val stsClient: StsOidcClient,
     override val coroutineContext: CoroutineContext
 ) : CoroutineScope {
-    fun createSak(
+    suspend fun createSak(
         pasientAktoerId: String,
         saksId: String,
         msgId: String
-    ): Deferred<OpprettSakResponse> = httpAsync("sak_opprett", saksId) {
+    ): OpprettSakResponse = retry("sak_opprett") {
         // TODO: Remove this workaround whenever ktor issue #1009 is fixed
         httpClient.post<HttpResponse>(url) {
             contentType(ContentType.Application.Json)

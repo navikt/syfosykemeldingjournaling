@@ -7,8 +7,7 @@ import io.ktor.http.HttpMethod
 import io.ktor.http.contentType
 import io.ktor.util.KtorExperimentalAPI
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Deferred
-import no.nav.syfo.helpers.httpAsync
+import no.nav.syfo.helpers.retry
 import no.nav.syfo.httpClient
 import no.nav.syfo.model.PdfPayload
 import kotlin.coroutines.CoroutineContext
@@ -17,7 +16,7 @@ import kotlin.coroutines.CoroutineContext
 class PdfgenClient(
     override val coroutineContext: CoroutineContext
 ) : CoroutineScope {
-    fun createPdf(payload: PdfPayload, trackingId: String): Deferred<ByteArray> = httpAsync("pdfgen", trackingId) {
+    suspend fun createPdf(payload: PdfPayload, trackingId: String): ByteArray = retry("pdfgen") {
         httpClient.call("http://syfopdfgen/api/v1/genpdf/syfosm/syfosm") {
             contentType(ContentType.Application.Json)
             method = HttpMethod.Post

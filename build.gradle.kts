@@ -1,5 +1,6 @@
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 import com.github.jengelman.gradle.plugins.shadow.transformers.ServiceFileTransformer
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 group = "no.nav.syfo"
 version = "1.0.0"
@@ -14,6 +15,7 @@ val ktorVersion = "1.1.3"
 val logstashLogbackEncoder = "5.3"
 val logbackVersion = "1.2.3"
 val prometheusVersion = "0.6.0"
+val smCommonVersion = "1.0.3"
 val spekVersion = "2.0.0"
 val syfosmoppgaveSchemasVersion = "1.2-SNAPSHOT"
 val junitPlatformLauncher = "1.0.0"
@@ -67,6 +69,11 @@ dependencies {
     implementation("org.apache.kafka:kafka_2.12:$kafkaVersion")
     implementation("io.confluent:kafka-avro-serializer:$confluentVersion")
 
+    implementation("no.nav.syfo.sm:syfosm-common-models:$smCommonVersion")
+    implementation("no.nav.syfo.sm:syfosm-common-networking:$smCommonVersion")
+    implementation("no.nav.syfo.sm:syfosm-common-rest-sts:$smCommonVersion")
+    implementation("no.nav.syfo.sm:syfosm-common-kafka:$smCommonVersion")
+
     implementation("no.nav.syfo:syfooppgave-schemas:$syfosmoppgaveSchemasVersion")
 
     testImplementation("org.amshove.kluent:kluent:$kluentVersion")
@@ -98,5 +105,9 @@ tasks {
             includeEngines("spek2")
         }
         testLogging.showStandardStreams = true
+    }
+    
+    withType<KotlinCompile> {
+        kotlinOptions.jvmTarget = "1.8"
     }
 }
