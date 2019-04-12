@@ -30,7 +30,9 @@ object KafkaITSpek : Spek({
             applicationPort = getRandomPort(),
             kafkaBootstrapServers = embeddedEnvironment.brokersURL,
             dokmotMottaInngaaendeUrl = "TODO",
-            opprettSakUrl = "TODO"
+            opprettSakUrl = "TODO",
+            personV3EndpointURL = "TODO",
+            securityTokenServiceURL = "TODO"
     )
 
     val vaultCredentials = VaultCredentials("unused", "unused")

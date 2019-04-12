@@ -15,7 +15,9 @@ data class Environment(
     val smpapirManualHandlingTopic: String = getEnvVar("KAFKA_SMPAPIR_MANUAL_TOPIC", "privat-syfo-smpapir-manuellBehandling"),
     val journalCreatedTopic: String = getEnvVar("KAFKA_JOURNAL_CREATED_TOPIC", "aapen-syfo-oppgave-journalOpprettet"),
     val opprettSakUrl: String = getEnvVar("OPPRETT_SAK_URL"),
-    val dokmotMottaInngaaendeUrl: String = getEnvVar("DOKMOT_MOTTA_INNGAAENDE_URL")
+    val dokmotMottaInngaaendeUrl: String = getEnvVar("DOKMOT_MOTTA_INNGAAENDE_URL"),
+    val personV3EndpointURL: String = getEnvVar("PERSON_V3_ENDPOINT_URL"),
+    val securityTokenServiceURL: String = getEnvVar("SECURITY_TOKEN_SERVICE_URL")
 ) : KafkaConfig
 
 data class VaultCredentials(

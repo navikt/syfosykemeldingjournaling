@@ -1,5 +1,6 @@
 package no.nav.syfo
 
+import com.ctc.wstx.exc.WstxException
 import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.SerializationFeature
@@ -17,6 +18,8 @@ import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
 import io.ktor.util.KtorExperimentalAPI
 import io.prometheus.client.hotspot.DefaultExports
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
@@ -29,6 +32,7 @@ import no.nav.syfo.client.DokmotClient
 import no.nav.syfo.client.PdfgenClient
 import no.nav.syfo.client.SakClient
 import no.nav.syfo.client.StsOidcClient
+import no.nav.syfo.helpers.retry
 import no.nav.syfo.kafka.loadBaseConfig
 import no.nav.syfo.kafka.toConsumerConfig
 import no.nav.syfo.kafka.toProducerConfig
@@ -47,17 +51,24 @@ import no.nav.syfo.model.PdfPayload
 import no.nav.syfo.model.Person
 import no.nav.syfo.model.ReceivedSykmelding
 import no.nav.syfo.sak.avro.RegisterJournal
+import no.nav.syfo.ws.createPort
+import no.nav.tjeneste.virksomhet.person.v3.binding.PersonV3
+import no.nav.tjeneste.virksomhet.person.v3.informasjon.NorskIdent
+import no.nav.tjeneste.virksomhet.person.v3.informasjon.PersonIdent
+import no.nav.tjeneste.virksomhet.person.v3.meldinger.HentPersonRequest
 import org.apache.kafka.clients.consumer.KafkaConsumer
 import org.apache.kafka.clients.producer.KafkaProducer
 import org.apache.kafka.clients.producer.ProducerRecord
 import org.apache.kafka.common.serialization.StringDeserializer
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import java.io.IOException
 import java.nio.file.Paths
 import java.time.Duration
 import java.time.ZoneId
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
+import no.nav.tjeneste.virksomhet.person.v3.informasjon.Person as TPSPerson
 
 val objectMapper: ObjectMapper = ObjectMapper().apply {
     registerKotlinModule()
@@ -98,6 +109,10 @@ fun main() = runBlocking(Executors.newFixedThreadPool(4).asCoroutineDispatcher()
     val dokmotClient = DokmotClient(env.dokmotMottaInngaaendeUrl, stsClient, coroutineContext)
     val pdfgenClient = PdfgenClient(coroutineContext)
 
+    val personV3 = createPort<PersonV3>(env.personV3EndpointURL) {
+        port { withSTS(credentials.serviceuserUsername, credentials.serviceuserPassword, env.securityTokenServiceURL) }
+    }
+
     try {
         val kafkaBaseConfig = loadBaseConfig(env, credentials)
         val consumerConfig = kafkaBaseConfig.toConsumerConfig(env.applicationName, StringDeserializer::class)
@@ -115,7 +130,7 @@ fun main() = runBlocking(Executors.newFixedThreadPool(4).asCoroutineDispatcher()
                         env.smpapirManualHandlingTopic
                 ))
                 try {
-                    listen(env, consumer, producer, applicationState, sakClient, dokmotClient, pdfgenClient)
+                    listen(env, consumer, producer, applicationState, sakClient, dokmotClient, pdfgenClient, personV3)
                 } finally {
                     log.error("Coroutine failed, {}, shutting down", keyValue("context", coroutineContext.toString()))
                     applicationState.running = false
@@ -142,13 +157,14 @@ suspend fun listen(
     applicationState: ApplicationState,
     sakClient: SakClient,
     dokmotClient: DokmotClient,
-    pdfgenClient: PdfgenClient
+    pdfgenClient: PdfgenClient,
+    personV3: PersonV3
 ) {
     while (applicationState.running) {
         consumer.poll(Duration.ofMillis(0)).forEach {
             try {
                 val receivedSykmelding: ReceivedSykmelding = objectMapper.readValue(it.value())
-                onJournalRequest(env, receivedSykmelding, producer, sakClient, dokmotClient, pdfgenClient)
+                onJournalRequest(env, receivedSykmelding, producer, sakClient, dokmotClient, pdfgenClient, personV3)
             } catch (e: Exception) {
                 log.error("Error occurred while trying to handle journaling request", e)
                 throw e
@@ -166,7 +182,8 @@ suspend fun onJournalRequest(
     producer: KafkaProducer<String, RegisterJournal>,
     sakClient: SakClient,
     dokmotClient: DokmotClient,
-    pdfgenClient: PdfgenClient
+    pdfgenClient: PdfgenClient,
+    personV3: PersonV3
 ) = coroutineScope {
     val logValues = arrayOf(
             keyValue("msgId", receivedSykmelding.msgId),
@@ -179,7 +196,9 @@ suspend fun onJournalRequest(
 
     val sykemledingsId = receivedSykmelding.sykmelding.id
 
-    val pdfPayload = createPdfPayload(receivedSykmelding)
+    val patient = fetchPerson(personV3, receivedSykmelding.personNrPasient)
+
+    val pdfPayload = createPdfPayload(receivedSykmelding, patient.await())
 
     val sakResponseDeferred = async {
         sakClient.createSak(receivedSykmelding.sykmelding.pasientAktoerId, sykemledingsId, receivedSykmelding.msgId)
@@ -252,13 +271,14 @@ fun createJournalpostPayload(
 )
 
 fun createPdfPayload(
-    receivedSykmelding: ReceivedSykmelding
+    receivedSykmelding: ReceivedSykmelding,
+    person: TPSPerson
 ): PdfPayload = PdfPayload(
         pasient = Pasient(
                 // TODO: Fetch name
-                fornavn = "Fornavn",
-                mellomnavn = "Mellomnavn",
-                etternavn = "Etternavnsen",
+                fornavn = person.personnavn.fornavn,
+                mellomnavn = person.personnavn.mellomnavn,
+                etternavn = person.personnavn.etternavn,
                 personnummer = receivedSykmelding.personNrPasient
         ),
         sykmelding = receivedSykmelding.sykmelding
@@ -270,5 +290,13 @@ fun Application.initRouting(applicationState: ApplicationState) {
                 readynessCheck = { applicationState.initialized },
                 livenessCheck = { applicationState.running }
         )
+    }
+}
+
+fun CoroutineScope.fetchPerson(personV3: PersonV3, ident: String): Deferred<TPSPerson> = async {
+    retry("tps_hent_person", arrayOf(500L, 1000L, 3000L, 5000L, 10000L), IOException::class, WstxException::class) {
+        personV3.hentPerson(HentPersonRequest()
+                .withAktoer(PersonIdent().withIdent(NorskIdent().withIdent(ident)))
+        ).person
     }
 }

@@ -15,10 +15,20 @@ val ktorVersion = "1.1.3"
 val logstashLogbackEncoder = "5.3"
 val logbackVersion = "1.2.3"
 val prometheusVersion = "0.6.0"
-val smCommonVersion = "1.0.3"
-val spekVersion = "2.0.0"
+val smCommonVersion = "1.0.8"
+val spekVersion = "2.0.2"
 val syfosmoppgaveSchemasVersion = "1.2-SNAPSHOT"
 val junitPlatformLauncher = "1.0.0"
+val navPersonv3Version = "3.2.0"
+val javaxActivationVersion = "1.1.1"
+val cxfVersion = "3.2.7"
+val commonsTextVersion = "1.4"
+val jaxbBasicAntVersion = "1.11.1"
+val javaxAnnotationApiVersion = "1.3.2"
+val jaxwsToolsVersion = "2.3.1"
+val jaxbRuntimeVersion = "2.4.0-b180830.0438"
+val javaxJaxwsApiVersion = "2.2.1"
+val jaxbApiVersion = "2.4.0-b180830.0359"
 
 tasks.withType<Jar> {
     manifest.attributes["Main-Class"] = "no.nav.syfo.BootstrapKt"
@@ -73,8 +83,26 @@ dependencies {
     implementation("no.nav.syfo.sm:syfosm-common-networking:$smCommonVersion")
     implementation("no.nav.syfo.sm:syfosm-common-rest-sts:$smCommonVersion")
     implementation("no.nav.syfo.sm:syfosm-common-kafka:$smCommonVersion")
+    implementation("no.nav.syfo.sm:syfosm-common-ws:$smCommonVersion")
 
     implementation("no.nav.syfo:syfooppgave-schemas:$syfosmoppgaveSchemasVersion")
+    implementation("no.nav.tjenester:nav-person-v3-tjenestespesifikasjon:$navPersonv3Version")
+
+    implementation("org.apache.commons:commons-text:$commonsTextVersion")
+    implementation("org.apache.cxf:cxf-rt-frontend-jaxws:$cxfVersion")
+    implementation("org.apache.cxf:cxf-rt-features-logging:$cxfVersion")
+    implementation("org.apache.cxf:cxf-rt-transports-http:$cxfVersion")
+    implementation("org.apache.cxf:cxf-rt-ws-security:$cxfVersion")
+
+    implementation("javax.xml.ws:jaxws-api:$javaxJaxwsApiVersion")
+    implementation("javax.annotation:javax.annotation-api:$javaxAnnotationApiVersion")
+    implementation("javax.xml.bind:jaxb-api:$jaxbApiVersion")
+    implementation("org.glassfish.jaxb:jaxb-runtime:$jaxbRuntimeVersion")
+    implementation("javax.activation:activation:$javaxActivationVersion")
+    implementation("com.sun.xml.ws:jaxws-tools:$jaxwsToolsVersion") {
+        exclude(group = "com.sun.xml.ws", module = "policy")
+    }
+
 
     testImplementation("org.amshove.kluent:kluent:$kluentVersion")
     testImplementation("org.spekframework.spek2:spek-dsl-jvm:$spekVersion")
