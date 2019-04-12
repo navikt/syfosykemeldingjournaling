@@ -5,7 +5,7 @@
     </appender>
 
     <logger name="no.nav" level="INFO"/>
-    <logger name="org.apache.kafka" level="INFO" />
+    <logger name="org.apache.kafka" level="WARN" />
 
     <root level="INFO">
         <appender-ref ref="stdout_json" />
