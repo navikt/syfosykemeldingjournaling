@@ -177,12 +177,12 @@ suspend fun onJournalRequest(
     val logKeys = logValues.joinToString(prefix = "(", postfix = ")", separator = ", ") { "{}" }
     log.info("Received a SM2013, trying to persist in Joark $logKeys", logValues)
 
-    val saksId = receivedSykmelding.sykmelding.id
+    val sykemledingsId = receivedSykmelding.sykmelding.id
 
     val pdfPayload = createPdfPayload(receivedSykmelding)
 
     val sakResponseDeferred = async {
-        sakClient.createSak(receivedSykmelding.sykmelding.pasientAktoerId, saksId, receivedSykmelding.msgId)
+        sakClient.createSak(receivedSykmelding.sykmelding.pasientAktoerId, sykemledingsId, receivedSykmelding.msgId)
     }
     val pdf = pdfgenClient.createPdf(pdfPayload, receivedSykmelding.msgId)
     CASE_CREATED_COUNTER.inc()
@@ -199,7 +199,7 @@ suspend fun onJournalRequest(
     val registerJournal = RegisterJournal().apply {
         journalpostKilde = "AS36"
         messageId = receivedSykmelding.msgId
-        sakId = saksId
+        sakId = sakResponse.id.toString()
         journalpostId = journalpost.journalpostId
     }
     producer.send(ProducerRecord(env.journalCreatedTopic, receivedSykmelding.sykmelding.id, registerJournal))
