@@ -22,7 +22,6 @@ class SakClient(
 ) : CoroutineScope {
     suspend fun createSak(
         pasientAktoerId: String,
-        saksId: String,
         msgId: String
     ): OpprettSakResponse = retry("sak_opprett") {
         // TODO: Remove this workaround whenever ktor issue #1009 is fixed
@@ -32,10 +31,10 @@ class SakClient(
             header("Authorization", "Bearer ${stsClient.oidcToken().access_token}")
             body = OpprettSak(
                     tema = "SYM",
-                    applikasjon = "syfomottak",
+                    applikasjon = "FS22",
                     aktoerId = pasientAktoerId,
                     orgnr = null,
-                    fagsakNr = saksId
+                    fagsakNr = null
             )
         }.use { it.call.response.receive<OpprettSakResponse>() }
     }

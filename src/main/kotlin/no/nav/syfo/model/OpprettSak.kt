@@ -9,7 +9,7 @@ data class OpprettSak(
     val applikasjon: String,
     val aktoerId: String,
     val orgnr: String?,
-    val fagsakNr: String
+    val fagsakNr: String?
 )
 
 @Serializable

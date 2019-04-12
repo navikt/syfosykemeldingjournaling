@@ -194,14 +194,12 @@ suspend fun onJournalRequest(
     val logKeys = logValues.joinToString(prefix = "(", postfix = ")", separator = ", ") { "{}" }
     log.info("Received a SM2013, trying to persist in Joark $logKeys", logValues)
 
-    val sykemledingsId = receivedSykmelding.sykmelding.id
-
     val patient = fetchPerson(personV3, receivedSykmelding.personNrPasient)
 
     val pdfPayload = createPdfPayload(receivedSykmelding, patient.await())
 
     val sakResponseDeferred = async {
-        sakClient.createSak(receivedSykmelding.sykmelding.pasientAktoerId, sykemledingsId, receivedSykmelding.msgId)
+        sakClient.createSak(receivedSykmelding.sykmelding.pasientAktoerId, receivedSykmelding.msgId)
     }
     val pdf = pdfgenClient.createPdf(pdfPayload, receivedSykmelding.msgId)
     CASE_CREATED_COUNTER.inc()
