@@ -3,7 +3,7 @@ import com.github.jengelman.gradle.plugins.shadow.transformers.ServiceFileTransf
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 group = "no.nav.syfo"
-version = "1.0.2"
+version = "1.0.3-SNAPSHOT"
 
 val confluentVersion = "5.0.0"
 val coroutinesVersion = "1.1.1"
