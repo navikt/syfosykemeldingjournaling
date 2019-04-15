@@ -202,7 +202,6 @@ suspend fun onJournalRequest(
         sakClient.createSak(receivedSykmelding.sykmelding.pasientAktoerId, receivedSykmelding.msgId)
     }
     val pdf = pdfgenClient.createPdf(pdfPayload, receivedSykmelding.msgId)
-    log.info(objectMapper.writeValueAsString(pdf))
     CASE_CREATED_COUNTER.inc()
     log.info("Created a case $logKeys", *logValues)
 
