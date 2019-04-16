@@ -14,13 +14,15 @@ import kotlin.coroutines.CoroutineContext
 
 @KtorExperimentalAPI
 class PdfgenClient(
+    private val url: String,
     override val coroutineContext: CoroutineContext
 ) : CoroutineScope {
-    suspend fun createPdf(payload: PdfPayload, trackingId: String): ByteArray = retry("pdfgen") {
-        httpClient.call("http://syfopdfgen/api/v1/genpdf/syfosm/syfosm") {
+    suspend fun createPdf(payload: PdfPayload): ByteArray = retry("pdfgen") {
+        // TODO: Remove this workaround whenever ktor issue #1009 is fixed
+        httpClient.call(url) {
             contentType(ContentType.Application.Json)
             method = HttpMethod.Post
             body = payload
-        }.response.readBytes()
+        }.use { it.response.readBytes() }
     }
 }

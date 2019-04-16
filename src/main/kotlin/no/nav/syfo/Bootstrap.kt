@@ -107,7 +107,7 @@ fun main() = runBlocking(Executors.newFixedThreadPool(4).asCoroutineDispatcher()
     val stsClient = StsOidcClient(credentials.serviceuserUsername, credentials.serviceuserPassword)
     val sakClient = SakClient(env.opprettSakUrl, stsClient, coroutineContext)
     val dokmotClient = DokmotClient(env.dokmotMottaInngaaendeUrl, stsClient, coroutineContext)
-    val pdfgenClient = PdfgenClient(coroutineContext)
+    val pdfgenClient = PdfgenClient(env.pdfgen, coroutineContext)
 
     val personV3 = createPort<PersonV3>(env.personV3EndpointURL) {
         port { withSTS(credentials.serviceuserUsername, credentials.serviceuserPassword, env.securityTokenServiceURL) }
@@ -201,7 +201,7 @@ suspend fun onJournalRequest(
     val sakResponseDeferred = async {
         sakClient.createSak(receivedSykmelding.sykmelding.pasientAktoerId, receivedSykmelding.msgId)
     }
-    val pdf = pdfgenClient.createPdf(pdfPayload, receivedSykmelding.msgId)
+    val pdf = pdfgenClient.createPdf(pdfPayload)
     CASE_CREATED_COUNTER.inc()
     log.info("Created a case $logKeys", *logValues)
 
@@ -211,7 +211,7 @@ suspend fun onJournalRequest(
     log.debug("Response from request to create sak, {}", keyValue("response", sakResponse))
 
     val journalpostPayload = createJournalpostPayload(receivedSykmelding, sakResponse.id.toString(), pdf)
-    val journalpost = dokmotClient.createJournalpost(receivedSykmelding.sykmelding.id, journalpostPayload)
+    val journalpost = dokmotClient.createJournalpost(journalpostPayload)
 
     val registerJournal = RegisterJournal().apply {
         journalpostKilde = "AS36"

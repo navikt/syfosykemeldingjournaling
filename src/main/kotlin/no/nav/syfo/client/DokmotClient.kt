@@ -21,7 +21,6 @@ class DokmotClient constructor(
     override val coroutineContext: CoroutineContext
 ) : CoroutineScope {
     suspend fun createJournalpost(
-        trackingId: String,
         mottaInngaaendeForsendelse: MottaInngaaendeForsendelse
     ): MottaInngaandeForsendelseResultat = retry("dokmotinngaaende") {
         // TODO: Remove this workaround whenever ktor issue #1009 is fixed
