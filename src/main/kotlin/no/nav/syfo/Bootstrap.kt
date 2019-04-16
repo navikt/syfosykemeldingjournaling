@@ -37,7 +37,6 @@ import no.nav.syfo.kafka.loadBaseConfig
 import no.nav.syfo.kafka.toConsumerConfig
 import no.nav.syfo.kafka.toProducerConfig
 import no.nav.syfo.metrics.CASE_CREATED_COUNTER
-import no.nav.syfo.metrics.MESSAGE_PERSISTED_IN_JOARK_COUNTER
 import no.nav.syfo.model.Aktoer
 import no.nav.syfo.model.AktoerWrapper
 import no.nav.syfo.model.ArkivSak
@@ -58,7 +57,6 @@ import no.nav.tjeneste.virksomhet.person.v3.informasjon.PersonIdent
 import no.nav.tjeneste.virksomhet.person.v3.meldinger.HentPersonRequest
 import org.apache.kafka.clients.consumer.KafkaConsumer
 import org.apache.kafka.clients.producer.KafkaProducer
-import org.apache.kafka.clients.producer.ProducerRecord
 import org.apache.kafka.common.serialization.StringDeserializer
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -210,6 +208,7 @@ suspend fun onJournalRequest(
     val sakResponse = sakResponseDeferred.await()
     log.debug("Response from request to create sak, {}", keyValue("response", sakResponse))
 
+    /*
     val journalpostPayload = createJournalpostPayload(receivedSykmelding, sakResponse.id.toString(), pdf)
     val journalpost = dokmotClient.createJournalpost(journalpostPayload)
 
@@ -223,6 +222,7 @@ suspend fun onJournalRequest(
     MESSAGE_PERSISTED_IN_JOARK_COUNTER.inc()
 
     log.info("Message successfully persisted in Joark {} $logKeys", keyValue("journalpostId", journalpost.journalpostId), *logValues)
+    */
 }
 
 fun createJournalpostPayload(
