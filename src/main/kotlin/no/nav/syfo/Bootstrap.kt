@@ -241,7 +241,7 @@ fun createJournalpostPayload(
                 kanalReferanseId = receivedSykmelding.msgId,
                 forsendelseInnsendt = receivedSykmelding.sykmelding.behandletTidspunkt.atZone(ZoneId.systemDefault()),
                 forsendelseMottatt = receivedSykmelding.mottattDato.atZone(ZoneId.systemDefault()),
-                mottaksKanal = "EIA", // TODO
+                mottaksKanal = "EIA", // TODO Oppdateres når vi får ny mottakskanal
                 tittel = "Sykmelding",
                 arkivSak = ArkivSak(
                         arkivSakSystem = "FS22",
@@ -260,7 +260,7 @@ fun createJournalpostPayload(
                         ),
                         DokumentVariant(
                                 arkivFilType = "JSON",
-                                variantFormat = "ORIGINAL", // TODO: PRODUKSJON?
+                                variantFormat = "ORIGINAL", // TODO: Skal egentlig bruke PRODUKSJON når denne blir opprettet
                                 dokument = objectMapper.writeValueAsBytes(receivedSykmelding.sykmelding)
                         )
                 )
@@ -273,7 +273,6 @@ fun createPdfPayload(
     person: TPSPerson
 ): PdfPayload = PdfPayload(
         pasient = Pasient(
-                // TODO: Fetch name
                 fornavn = person.personnavn.fornavn,
                 mellomnavn = person.personnavn.mellomnavn,
                 etternavn = person.personnavn.etternavn,
