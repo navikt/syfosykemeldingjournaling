@@ -15,7 +15,7 @@ val ktorVersion = "1.1.3"
 val logstashLogbackEncoder = "5.3"
 val logbackVersion = "1.2.3"
 val prometheusVersion = "0.6.0"
-val smCommonVersion = "1.0.12"
+val smCommonVersion = "1.0.16"
 val spekVersion = "2.0.2"
 val syfosmoppgaveSchemasVersion = "1.2-SNAPSHOT"
 val junitPlatformLauncher = "1.0.0"
@@ -84,6 +84,7 @@ dependencies {
     implementation("no.nav.syfo.sm:syfosm-common-rest-sts:$smCommonVersion")
     implementation("no.nav.syfo.sm:syfosm-common-kafka:$smCommonVersion")
     implementation("no.nav.syfo.sm:syfosm-common-ws:$smCommonVersion")
+    implementation("no.nav.syfo.sm:syfosm-common-diagnosis-codes:$smCommonVersion")
 
     implementation("no.nav.syfo:syfooppgave-schemas:$syfosmoppgaveSchemasVersion")
     implementation("no.nav.tjenester:nav-person-v3-tjenestespesifikasjon:$navPersonv3Version")

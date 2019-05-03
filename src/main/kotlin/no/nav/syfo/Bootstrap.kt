@@ -50,6 +50,7 @@ import no.nav.syfo.model.Pasient
 import no.nav.syfo.model.PdfPayload
 import no.nav.syfo.model.Person
 import no.nav.syfo.model.ReceivedSykmelding
+import no.nav.syfo.model.toPDFFormat
 import no.nav.syfo.sak.avro.RegisterJournal
 import no.nav.syfo.ws.createPort
 import no.nav.tjeneste.virksomhet.person.v3.binding.PersonV3
@@ -278,6 +279,8 @@ fun createPdfPayload(
                 etternavn = person.personnavn.etternavn,
                 personnummer = receivedSykmelding.personNrPasient
         ),
+        hovedDiagnose = receivedSykmelding.sykmelding.medisinskVurdering.hovedDiagnose?.toPDFFormat(),
+        biDiagnoser = receivedSykmelding.sykmelding.medisinskVurdering.biDiagnoser.map { it.toPDFFormat() },
         sykmelding = receivedSykmelding.sykmelding
 )
 
@@ -291,7 +294,11 @@ fun Application.initRouting(applicationState: ApplicationState) {
 }
 
 fun CoroutineScope.fetchPerson(personV3: PersonV3, ident: String): Deferred<TPSPerson> = async {
-    retry("tps_hent_person", arrayOf(500L, 1000L, 3000L, 5000L, 10000L), IOException::class, WstxException::class) {
+    retry(
+            callName = "tps_hent_person",
+            retryIntervals = arrayOf(500L, 1000L, 3000L, 5000L, 10000L),
+            legalExceptions = *arrayOf(IOException::class, WstxException::class)
+    ) {
         personV3.hentPerson(HentPersonRequest()
                 .withAktoer(PersonIdent().withIdent(NorskIdent().withIdent(ident)))
         ).person
