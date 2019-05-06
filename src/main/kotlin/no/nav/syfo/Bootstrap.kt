@@ -278,7 +278,8 @@ fun createPdfPayload(
                 fornavn = person.personnavn.fornavn,
                 mellomnavn = person.personnavn.mellomnavn,
                 etternavn = person.personnavn.etternavn,
-                personnummer = receivedSykmelding.personNrPasient
+                personnummer = receivedSykmelding.personNrPasient,
+                tlfNummer = receivedSykmelding.tlfPasient
         ),
         annenFraversArsakGrunn = receivedSykmelding.sykmelding.medisinskVurdering.annenFraversArsak?.grunn?.map { it.toPDFFormat() } ?: listOf(),
         hovedDiagnose = receivedSykmelding.sykmelding.medisinskVurdering.hovedDiagnose?.toPDFFormat(),

@@ -16,12 +16,13 @@ data class Pasient(
     val fornavn: String,
     val mellomnavn: String?,
     val etternavn: String,
-    val personnummer: String
+    val personnummer: String,
+    val tlfNummer: String?
 )
 
 data class EnumRepresentation(
-    val code: String,
-    val text: String,
+    val kode: String,
+    val tekst: String,
     val oid: String
 )
 
