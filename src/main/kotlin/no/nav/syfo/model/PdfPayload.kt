@@ -24,7 +24,7 @@ data class PdfDiagnosisCode(
     val oid: String
 )
 
-fun Diagnose.toPDFFormat() = when(system) {
+fun Diagnose.toPDFFormat() = when (system) {
     Diagnosekoder.ICPC2_CODE -> Diagnosekoder.icpc2[kode]
     Diagnosekoder.ICD10_CODE -> Diagnosekoder.icd10[kode]
     else -> throw RuntimeException("Invalid oid for diagnosis $system")

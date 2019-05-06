@@ -23,7 +23,7 @@ class SakClient(
     suspend fun createSak(
         pasientAktoerId: String,
         msgId: String
-    ): OpprettSakResponse = retry("sak_opprett", arrayOf(500L, 1000L, 3000L, 5000L, 10000L)) {
+    ): OpprettSakResponse = retry("sak_opprett", retryIntervals = arrayOf(500L, 1000L, 3000L, 5000L, 10000L)) {
         // TODO: Remove this workaround whenever ktor issue #1009 is fixed
         httpClient.post<HttpResponse>(url) {
             contentType(ContentType.Application.Json)
