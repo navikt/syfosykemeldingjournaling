@@ -75,6 +75,7 @@ val objectMapper: ObjectMapper = ObjectMapper().apply {
     registerKotlinModule()
     registerModule(JavaTimeModule())
     configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+    configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false)
 }
 
 val log: Logger = LoggerFactory.getLogger("smsak")
@@ -279,6 +280,7 @@ fun createPdfPayload(
                 etternavn = person.personnavn.etternavn,
                 personnummer = receivedSykmelding.personNrPasient
         ),
+        annenFraversArsakGrunn = receivedSykmelding.sykmelding.medisinskVurdering.annenFraversArsak?.grunn?.map { it.toPDFFormat() } ?: listOf(),
         hovedDiagnose = receivedSykmelding.sykmelding.medisinskVurdering.hovedDiagnose?.toPDFFormat(),
         biDiagnoser = receivedSykmelding.sykmelding.medisinskVurdering.biDiagnoser.map { it.toPDFFormat() },
         sykmelding = receivedSykmelding.sykmelding
