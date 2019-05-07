@@ -204,12 +204,11 @@ suspend fun onJournalRequest(
         sakClient.createSak(receivedSykmelding.sykmelding.pasientAktoerId, receivedSykmelding.msgId)
     }
     val pdf = pdfgenClient.createPdf(pdfPayload)
-    CASE_CREATED_COUNTER.inc()
-    log.info("Created a case $logKeys", *logValues)
-
     log.info("PDF generated $logKeys", *logValues)
 
     val sakResponse = sakResponseDeferred.await()
+    CASE_CREATED_COUNTER.inc()
+    log.info("Created a sak, {} $logKeys", sakResponse.id.toString(), *logValues)
     log.debug("Response from request to create sak, {}", keyValue("response", sakResponse))
 
     val journalpostPayload = createJournalpostPayload(receivedSykmelding, sakResponse.id.toString(), pdf)
