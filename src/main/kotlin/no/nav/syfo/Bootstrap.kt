@@ -52,6 +52,7 @@ import no.nav.syfo.model.Pasient
 import no.nav.syfo.model.PdfPayload
 import no.nav.syfo.model.Person
 import no.nav.syfo.model.ReceivedSykmelding
+import no.nav.syfo.model.ValidationResult
 import no.nav.syfo.model.toPDFFormat
 import no.nav.syfo.sak.avro.RegisterJournal
 import no.nav.syfo.ws.createPort
@@ -237,8 +238,13 @@ suspend fun blockingApplicationLogic(
     while (applicationState.running) {
         consumer.poll(Duration.ofMillis(0)).forEach {
             try {
-                val receivedSykmelding: ReceivedSykmelding = objectMapper.readValue(it.value())
-                onJournalRequest(env, receivedSykmelding, producer, sakClient, dokmotClient, pdfgenClient, personV3)
+                val behandlingsUtfallReceivedSykmelding: BehandlingsUtfallReceivedSykmelding =
+                        objectMapper.readValue(it.value())
+                val receivedSykmelding: ReceivedSykmelding =
+                        objectMapper.readValue(behandlingsUtfallReceivedSykmelding.receivedSykmelding)
+                val validationResult: ValidationResult =
+                        objectMapper.readValue(behandlingsUtfallReceivedSykmelding.behandlingsUtfall)
+                onJournalRequest(env, receivedSykmelding, producer, sakClient, dokmotClient, pdfgenClient, personV3, validationResult)
             } catch (e: Exception) {
                 log.error("Error occurred while trying to handle journaling request", e)
                 throw e
@@ -257,7 +263,8 @@ suspend fun onJournalRequest(
     sakClient: SakClient,
     dokmotClient: DokmotClient,
     pdfgenClient: PdfgenClient,
-    personV3: PersonV3
+    personV3: PersonV3,
+    validationResult: ValidationResult
 ) = coroutineScope {
     val logValues = arrayOf(
             keyValue("msgId", receivedSykmelding.msgId),
