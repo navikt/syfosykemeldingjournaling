@@ -36,6 +36,7 @@ import no.nav.syfo.helpers.retry
 import no.nav.syfo.kafka.loadBaseConfig
 import no.nav.syfo.kafka.toConsumerConfig
 import no.nav.syfo.kafka.toProducerConfig
+import no.nav.syfo.kafka.toStreamsConfig
 import no.nav.syfo.metrics.CASE_CREATED_COUNTER
 import no.nav.syfo.metrics.MESSAGE_PERSISTED_IN_JOARK_COUNTER
 import no.nav.syfo.model.Aktoer
@@ -60,16 +61,26 @@ import no.nav.tjeneste.virksomhet.person.v3.meldinger.HentPersonRequest
 import org.apache.kafka.clients.consumer.KafkaConsumer
 import org.apache.kafka.clients.producer.KafkaProducer
 import org.apache.kafka.clients.producer.ProducerRecord
+import org.apache.kafka.common.serialization.Serdes
 import org.apache.kafka.common.serialization.StringDeserializer
+import org.apache.kafka.streams.KafkaStreams
+import org.apache.kafka.streams.StreamsBuilder
+import org.apache.kafka.streams.kstream.Consumed
+import org.apache.kafka.streams.kstream.JoinWindows
+import org.apache.kafka.streams.kstream.Joined
+import org.apache.kafka.streams.kstream.Produced
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.io.IOException
 import java.nio.file.Paths
 import java.time.Duration
 import java.time.ZoneId
+import java.util.Properties
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import no.nav.tjeneste.virksomhet.person.v3.informasjon.Person as TPSPerson
+
+data class BehandlingsUtfallReceivedSykmelding(val receivedSykmelding: ByteArray, val behandlingsUtfall: ByteArray)
 
 val objectMapper: ObjectMapper = ObjectMapper().apply {
     registerKotlinModule()
@@ -115,44 +126,104 @@ fun main() = runBlocking(Executors.newFixedThreadPool(4).asCoroutineDispatcher()
         port { withSTS(credentials.serviceuserUsername, credentials.serviceuserPassword, env.securityTokenServiceURL) }
     }
 
-    try {
-        val kafkaBaseConfig = loadBaseConfig(env, credentials)
-        val consumerConfig = kafkaBaseConfig.toConsumerConfig(env.applicationName, StringDeserializer::class)
-        val producerConfig = kafkaBaseConfig.toProducerConfig(env.applicationName, KafkaAvroSerializer::class)
-        val applicationListeners = (1..env.applicationThreads).map {
-            launch {
-                val producer = KafkaProducer<String, RegisterJournal>(producerConfig)
+    val kafkaBaseConfig = loadBaseConfig(env, credentials)
+    val consumerConfig = kafkaBaseConfig.toConsumerConfig(env.applicationName, StringDeserializer::class)
+    val producerConfig = kafkaBaseConfig.toProducerConfig(env.applicationName, KafkaAvroSerializer::class)
+    val producer = KafkaProducer<String, RegisterJournal>(producerConfig)
 
-                val consumer = KafkaConsumer<String, String>(consumerConfig)
-                consumer.subscribe(listOf(
-                        env.sm2013AutomaticHandlingTopic,
-                        env.sm2013ManualHandlingTopic,
-                        env.sm2013InvalidHandlingTopic,
-                        env.smpapirAutomaticHandlingTopic,
-                        env.smpapirManualHandlingTopic
-                ))
-                try {
-                    listen(env, consumer, producer, applicationState, sakClient, dokmotClient, pdfgenClient, personV3)
-                } finally {
-                    log.error("Coroutine failed, {}, shutting down", keyValue("context", coroutineContext.toString()))
-                    applicationState.running = false
-                }
+    val streamProperties =
+                kafkaBaseConfig.toStreamsConfig(env.applicationName, valueSerde = Serdes.String()::class)
+    val kafkaStream = createKafkaStream(streamProperties, env)
+
+    kafkaStream.start()
+
+    val consumer = KafkaConsumer<String, String>(consumerConfig)
+        consumer.subscribe(listOf(env.sm2013SakTopic))
+
+    launchListeners(env, applicationState, streamProperties, producer, sakClient, dokmotClient, pdfgenClient, personV3)
+
+        Runtime.getRuntime().addShutdownHook(Thread {
+            kafkaStream.close()
+            applicationServer.stop(10, 10, TimeUnit.SECONDS)
+        })
+}
+
+fun createKafkaStream(streamProperties: Properties, env: Environment): KafkaStreams {
+    val streamsBuilder = StreamsBuilder()
+
+    val sm2013InputStream = streamsBuilder.stream<String, String>(
+            listOf(
+                    env.sm2013AutomaticHandlingTopic,
+                    env.sm2013ManualHandlingTopic,
+                    env.sm2013InvalidHandlingTopic,
+                    env.smpapirAutomaticHandlingTopic,
+                    env.smpapirManualHandlingTopic
+            ), Consumed.with(Serdes.String(), Serdes.String())
+    )
+
+    val behandlingsUtfallStream = streamsBuilder.stream<String, String>(
+            listOf(
+                    env.sm2013BehandlingsUtfallTopic
+            ), Consumed.with(Serdes.String(), Serdes.String())
+    )
+
+    val joinWindow = JoinWindows.of(TimeUnit.DAYS.toMillis(14))
+            .until(TimeUnit.DAYS.toMillis(31))
+
+    val joined = Joined.with(
+            Serdes.String(), Serdes.String(), Serdes.String()
+    )
+
+    sm2013InputStream.join(behandlingsUtfallStream, { sm2013, behandling ->
+        objectMapper.writeValueAsString(
+                BehandlingsUtfallReceivedSykmelding(
+                        receivedSykmelding = sm2013.toByteArray(Charsets.UTF_8),
+                        behandlingsUtfall = behandling.toByteArray(Charsets.UTF_8)
+                )
+        )
+    }, joinWindow, joined)
+            .to(env.sm2013SakTopic, Produced.with(Serdes.String(), Serdes.String()))
+
+    return KafkaStreams(streamsBuilder.build(), streamProperties)
+}
+
+@KtorExperimentalAPI
+fun CoroutineScope.launchListeners(
+    env: Environment,
+    applicationState: ApplicationState,
+    consumerProperties: Properties,
+    producer: KafkaProducer<String, RegisterJournal>,
+    sakClient: SakClient,
+    dokmotClient: DokmotClient,
+    pdfgenClient: PdfgenClient,
+    personV3: PersonV3
+) {
+    try {
+        val listeners = (1..env.applicationThreads).map {
+            launch {
+                val kafkaconsumer = KafkaConsumer<String, String>(consumerProperties)
+                kafkaconsumer.subscribe(listOf(env.sm2013SakTopic))
+
+                blockingApplicationLogic(env,
+                        kafkaconsumer,
+                        producer,
+                        applicationState,
+                        sakClient,
+                        dokmotClient,
+                        pdfgenClient,
+                        personV3)
             }
         }.toList()
 
-        Runtime.getRuntime().addShutdownHook(Thread {
-            applicationServer.stop(10, 10, TimeUnit.SECONDS)
-        })
         applicationState.initialized = true
-
-        applicationListeners.forEach { it.join() }
+        runBlocking { listeners.forEach { it.join() } }
     } finally {
         applicationState.running = false
     }
 }
 
 @KtorExperimentalAPI
-suspend fun listen(
+suspend fun blockingApplicationLogic(
     env: Environment,
     consumer: KafkaConsumer<String, String>,
     producer: KafkaProducer<String, RegisterJournal>,

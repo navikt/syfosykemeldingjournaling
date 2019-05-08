@@ -1,0 +1,12 @@
+{
+  "topics": [
+    {
+      "topicName": "privat-syfo-sm2013-sak",
+      "members": [
+        {"member":"srvsyfosmsak", "role":"PRODUCER"},
+        {"member":"srvsyfosmsak", "role":"CONSUMER"}
+      ],
+      "numPartitions": 3
+    }
+  ]
+}

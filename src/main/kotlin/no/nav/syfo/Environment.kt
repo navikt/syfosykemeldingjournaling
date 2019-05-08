@@ -14,6 +14,8 @@ data class Environment(
     val smpapirAutomaticHandlingTopic: String = getEnvVar("KAFKA_SMPAPIR_AUTOMATIC_TOPIC", "privat-syfo-smpapir-automatiskBehandling"),
     val smpapirManualHandlingTopic: String = getEnvVar("KAFKA_SMPAPIR_MANUAL_TOPIC", "privat-syfo-smpapir-manuellBehandling"),
     val journalCreatedTopic: String = getEnvVar("KAFKA_JOURNAL_CREATED_TOPIC", "aapen-syfo-oppgave-journalOpprettet"),
+    val sm2013SakTopic: String = getEnvVar("KAFKA_SM2013_SAK_TOPIC", "privat-syfo-sm2013-sak"),
+    val sm2013BehandlingsUtfallTopic: String = getEnvVar("KAFKA_SM2013_BEHANDLING_TOPIC", "privat-syfo-sm2013-behandlingsUtfall"),
     val opprettSakUrl: String = getEnvVar("OPPRETT_SAK_URL"),
     val dokmotMottaInngaaendeUrl: String = getEnvVar("DOKMOT_MOTTA_INNGAAENDE_URL"),
     val personV3EndpointURL: String = getEnvVar("PERSON_V3_ENDPOINT_URL"),
