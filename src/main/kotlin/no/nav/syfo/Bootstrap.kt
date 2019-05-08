@@ -129,7 +129,8 @@ fun main() = runBlocking(Executors.newFixedThreadPool(4).asCoroutineDispatcher()
     }
 
     val kafkaBaseConfig = loadBaseConfig(env, credentials).envOverrides()
-    val consumerConfig = kafkaBaseConfig.toConsumerConfig(env.applicationName, StringDeserializer::class)
+    val consumerConfig = kafkaBaseConfig.toConsumerConfig(
+            "${env.applicationName}-consumer", valueDeserializer = StringDeserializer::class)
     val producerConfig = kafkaBaseConfig.toProducerConfig(env.applicationName, KafkaAvroSerializer::class)
     val producer = KafkaProducer<String, RegisterJournal>(producerConfig)
 
