@@ -140,10 +140,7 @@ fun main() = runBlocking(Executors.newFixedThreadPool(4).asCoroutineDispatcher()
 
     kafkaStream.start()
 
-    val consumer = KafkaConsumer<String, String>(consumerConfig)
-        consumer.subscribe(listOf(env.sm2013SakTopic))
-
-    launchListeners(env, applicationState, streamProperties, producer, sakClient, dokmotClient, pdfgenClient, personV3)
+    launchListeners(env, applicationState, consumerConfig, producer, sakClient, dokmotClient, pdfgenClient, personV3)
 
         Runtime.getRuntime().addShutdownHook(Thread {
             kafkaStream.close()
