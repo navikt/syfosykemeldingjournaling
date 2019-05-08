@@ -275,7 +275,7 @@ suspend fun onJournalRequest(
 
     val patient = fetchPerson(personV3, receivedSykmelding.personNrPasient)
 
-    val pdfPayload = createPdfPayload(receivedSykmelding, patient.await())
+    val pdfPayload = createPdfPayload(receivedSykmelding, validationResult, patient.await())
 
     val sakResponseDeferred = async {
         sakClient.createSak(receivedSykmelding.sykmelding.pasientAktoerId, receivedSykmelding.msgId)
@@ -348,6 +348,7 @@ fun createJournalpostPayload(
 
 fun createPdfPayload(
     receivedSykmelding: ReceivedSykmelding,
+    validationResult: ValidationResult,
     person: TPSPerson
 ): PdfPayload = PdfPayload(
         pasient = Pasient(
@@ -360,7 +361,8 @@ fun createPdfPayload(
         annenFraversArsakGrunn = receivedSykmelding.sykmelding.medisinskVurdering.annenFraversArsak?.grunn?.map { it.toPDFFormat() } ?: listOf(),
         hovedDiagnose = receivedSykmelding.sykmelding.medisinskVurdering.hovedDiagnose?.toPDFFormat(),
         biDiagnoser = receivedSykmelding.sykmelding.medisinskVurdering.biDiagnoser.map { it.toPDFFormat() },
-        sykmelding = receivedSykmelding.sykmelding
+        sykmelding = receivedSykmelding.sykmelding,
+        validationResult = validationResult
 )
 
 fun Application.initRouting(applicationState: ApplicationState) {

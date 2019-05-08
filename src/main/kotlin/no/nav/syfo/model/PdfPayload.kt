@@ -9,7 +9,8 @@ data class PdfPayload(
     val hovedDiagnose: EnumRepresentation?,
     val biDiagnoser: List<EnumRepresentation>,
     val annenFraversArsakGrunn: List<EnumRepresentation>,
-    val sykmelding: Sykmelding
+    val sykmelding: Sykmelding,
+    val validationResult: ValidationResult
 )
 
 data class Pasient(
