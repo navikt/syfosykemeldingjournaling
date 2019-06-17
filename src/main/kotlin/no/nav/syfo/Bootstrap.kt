@@ -320,7 +320,7 @@ fun createJournalpostPayload(
                 forsendelseInnsendt = receivedSykmelding.sykmelding.behandletTidspunkt.atZone(ZoneId.systemDefault()),
                 forsendelseMottatt = receivedSykmelding.mottattDato.atZone(ZoneId.systemDefault()),
                 mottaksKanal = "EIA", // TODO Oppdateres når vi får ny mottakskanal
-                tittel = "Sykmelding",
+                tittel = "Sykmelding fom:${receivedSykmelding.sykmelding.perioder.first().fom} tom:${receivedSykmelding.sykmelding.perioder.last().tom}",
                 arkivSak = ArkivSak(
                         arkivSakSystem = "FS22",
                         arkivSakId = caseId
@@ -328,7 +328,7 @@ fun createJournalpostPayload(
         ),
         tilleggsopplysninger = listOf(),
         dokumentInfoHoveddokument = DokumentInfo(
-                tittel = "Sykmelding",
+                tittel = "Sykmelding fom:${receivedSykmelding.sykmelding.perioder.first().fom} tom:${receivedSykmelding.sykmelding.perioder.last().tom}",
                 dokumentkategori = "Sykmelding",
                 dokumentVariant = listOf(
                         DokumentVariant(
