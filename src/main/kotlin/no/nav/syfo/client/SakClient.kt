@@ -8,12 +8,9 @@ import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.features.json.JacksonSerializer
 import io.ktor.client.features.json.JsonFeature
-import io.ktor.client.features.logging.DEFAULT
-import io.ktor.client.features.logging.LogLevel
-import io.ktor.client.features.logging.Logger
-import io.ktor.client.features.logging.Logging
 import io.ktor.client.request.get
 import io.ktor.client.request.header
+import io.ktor.client.request.parameter
 import io.ktor.client.request.post
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
@@ -32,10 +29,6 @@ class SakClient constructor(val url: String, val oidcClient: StsOidcClient) {
                 configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false)
                 configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
             }
-        }
-        install(Logging) {
-            logger = Logger.DEFAULT
-            level = LogLevel.ALL
         }
     }
 
@@ -65,13 +58,9 @@ class SakClient constructor(val url: String, val oidcClient: StsOidcClient) {
             contentType(ContentType.Application.Json)
             header("X-Correlation-ID", msgId)
             header("Authorization", "Bearer ${oidcClient.oidcToken().access_token}")
-            body = OpprettSak(
-                    tema = "SYM",
-                    applikasjon = "FS22",
-                    aktoerId = pasientAktoerId,
-                    orgnr = null,
-                    fagsakNr = null
-            )
+            parameter("tema", "SYM")
+            parameter("aktoerId", pasientAktoerId)
+            parameter("applikasjon", "FS22")
         }
     }
 }
