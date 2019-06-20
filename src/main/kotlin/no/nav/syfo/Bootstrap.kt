@@ -27,6 +27,7 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import net.logstash.logback.argument.StructuredArgument
 import net.logstash.logback.argument.StructuredArguments.keyValue
 import no.nav.syfo.api.registerNaisApi
 import no.nav.syfo.client.DokmotClient
@@ -121,7 +122,7 @@ fun main() = runBlocking(Executors.newFixedThreadPool(4).asCoroutineDispatcher()
     }.start(wait = false)
 
     val stsClient = StsOidcClient(credentials.serviceuserUsername, credentials.serviceuserPassword)
-    val sakClient = SakClient(env.opprettSakUrl, stsClient, coroutineContext)
+    val sakClient = SakClient(env.opprettSakUrl, stsClient)
     val dokmotClient = DokmotClient(env.dokmotMottaInngaaendeUrl, stsClient, coroutineContext)
     val pdfgenClient = PdfgenClient(env.pdfgen, coroutineContext)
 
@@ -283,24 +284,18 @@ suspend fun onJournalRequest(
 
     val pdfPayload = createPdfPayload(receivedSykmelding, validationResult, patient.await())
 
-    val sakResponseDeferred = async {
-        sakClient.createSak(receivedSykmelding.sykmelding.pasientAktoerId, receivedSykmelding.msgId)
-    }
+    val sakid = findSakid(sakClient, receivedSykmelding, logKeys, logValues)
+
     val pdf = pdfgenClient.createPdf(pdfPayload)
     log.info("PDF generated $logKeys", *logValues)
 
-    val sakResponse = sakResponseDeferred.await()
-    CASE_CREATED_COUNTER.inc()
-    log.info("Created a sak, {} $logKeys", sakResponse.id.toString(), *logValues)
-    log.debug("Response from request to create sak, {}", keyValue("response", sakResponse))
-
-    val journalpostPayload = createJournalpostPayload(receivedSykmelding, sakResponse.id.toString(), pdf)
+    val journalpostPayload = createJournalpostPayload(receivedSykmelding, sakid, pdf)
     val journalpost = dokmotClient.createJournalpost(journalpostPayload)
 
     val registerJournal = RegisterJournal().apply {
         journalpostKilde = "AS36"
         messageId = receivedSykmelding.msgId
-        sakId = sakResponse.id.toString()
+        sakId = sakid
         journalpostId = journalpost.journalpostId
     }
     producer.send(ProducerRecord(env.journalCreatedTopic, receivedSykmelding.sykmelding.id, registerJournal))
@@ -389,5 +384,35 @@ fun CoroutineScope.fetchPerson(personV3: PersonV3, ident: String): Deferred<TPSP
         personV3.hentPerson(HentPersonRequest()
                 .withAktoer(PersonIdent().withIdent(NorskIdent().withIdent(ident)))
         ).person
+    }
+}
+
+@KtorExperimentalAPI
+suspend fun CoroutineScope.findSakid(
+    sakClient: SakClient,
+    receivedSykmelding: ReceivedSykmelding,
+    logKeys: String,
+    logValues: Array<StructuredArgument>
+): String {
+
+    val findSakResponseDeferred = async {
+        sakClient.findSak(receivedSykmelding.sykmelding.pasientAktoerId, receivedSykmelding.msgId)
+    }
+
+    val findSakResponse = findSakResponseDeferred.await()
+
+    return if (findSakResponse?.id == null) {
+        val createSakResponseDeferred = async {
+            sakClient.createSak(receivedSykmelding.sykmelding.pasientAktoerId, receivedSykmelding.msgId)
+        }
+        val createSakResponse = createSakResponseDeferred.await()
+
+        CASE_CREATED_COUNTER.inc()
+        log.info("Created a sak, {} $logKeys", createSakResponse.id.toString(), *logValues)
+
+        createSakResponse.id.toString()
+    } else {
+        log.info("Found a sak, {} $logKeys", findSakResponse.id.toString(), *logValues)
+        findSakResponse.id.toString()
     }
 }
