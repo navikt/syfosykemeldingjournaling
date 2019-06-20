@@ -121,7 +121,7 @@ fun main() = runBlocking(Executors.newFixedThreadPool(4).asCoroutineDispatcher()
     }.start(wait = false)
 
     val stsClient = StsOidcClient(credentials.serviceuserUsername, credentials.serviceuserPassword)
-    val sakClient = SakClient(env.opprettSakUrl, stsClient, coroutineContext)
+    val sakClient = SakClient(env.opprettSakUrl, stsClient)
     val dokmotClient = DokmotClient(env.dokmotMottaInngaaendeUrl, stsClient, coroutineContext)
     val pdfgenClient = PdfgenClient(env.pdfgen, coroutineContext)
 
@@ -283,24 +283,39 @@ suspend fun onJournalRequest(
 
     val pdfPayload = createPdfPayload(receivedSykmelding, validationResult, patient.await())
 
-    val sakResponseDeferred = async {
-        sakClient.createSak(receivedSykmelding.sykmelding.pasientAktoerId, receivedSykmelding.msgId)
+    // TODO this is not a good why find a better way plz
+    var sakid: String?
+
+    val findSakResponseDeferred = async {
+        sakClient.findSak(receivedSykmelding.sykmelding.pasientAktoerId, receivedSykmelding.msgId)
     }
+
+    val findSakResponse = findSakResponseDeferred.await()
+
+    if (findSakResponseDeferred.await().id.toString().isBlank()) {
+        val createSakResponseDeferred = async {
+            sakClient.createSak(receivedSykmelding.sykmelding.pasientAktoerId, receivedSykmelding.msgId)
+        }
+        val createSakResponse = createSakResponseDeferred.await()
+        sakid = createSakResponse.id.toString()
+
+        CASE_CREATED_COUNTER.inc()
+        log.info("Created a sak, {} $logKeys", createSakResponse.id.toString(), *logValues)
+    } else {
+        log.info("Found a sak, {} $logKeys", findSakResponse.id.toString(), *logValues)
+        sakid = findSakResponse.id.toString()
+    }
+
     val pdf = pdfgenClient.createPdf(pdfPayload)
     log.info("PDF generated $logKeys", *logValues)
 
-    val sakResponse = sakResponseDeferred.await()
-    CASE_CREATED_COUNTER.inc()
-    log.info("Created a sak, {} $logKeys", sakResponse.id.toString(), *logValues)
-    log.debug("Response from request to create sak, {}", keyValue("response", sakResponse))
-
-    val journalpostPayload = createJournalpostPayload(receivedSykmelding, sakResponse.id.toString(), pdf)
+    val journalpostPayload = createJournalpostPayload(receivedSykmelding, sakid, pdf)
     val journalpost = dokmotClient.createJournalpost(journalpostPayload)
 
     val registerJournal = RegisterJournal().apply {
         journalpostKilde = "AS36"
         messageId = receivedSykmelding.msgId
-        sakId = sakResponse.id.toString()
+        sakId = sakid
         journalpostId = journalpost.journalpostId
     }
     producer.send(ProducerRecord(env.journalCreatedTopic, receivedSykmelding.sykmelding.id, registerJournal))
