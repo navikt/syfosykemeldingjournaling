@@ -49,6 +49,7 @@ import no.nav.syfo.model.DokumentInfo
 import no.nav.syfo.model.DokumentVariant
 import no.nav.syfo.model.ForsendelseInformasjon
 import no.nav.syfo.model.MottaInngaaendeForsendelse
+import no.nav.syfo.model.OpprettSakResponse
 import no.nav.syfo.model.Organisasjon
 import no.nav.syfo.model.Pasient
 import no.nav.syfo.model.PdfPayload
@@ -401,7 +402,7 @@ suspend fun CoroutineScope.findSakid(
 
     val findSakResponse = findSakResponseDeferred.await()
 
-    return if (findSakResponse?.firstOrNull()?.id == null) {
+    return if (findSakResponse?.sortedOpprettSakResponse()?.lastOrNull()?.id == null) {
         val createSakResponseDeferred = async {
             sakClient.createSak(receivedSykmelding.sykmelding.pasientAktoerId, receivedSykmelding.msgId)
         }
@@ -412,7 +413,10 @@ suspend fun CoroutineScope.findSakid(
 
         createSakResponse.id.toString()
     } else {
-        log.info("Found a sak, {} $logKeys", findSakResponse.first().id.toString(), *logValues)
-        findSakResponse.first().id.toString()
+        log.info("Found a sak, {} $logKeys", findSakResponse.sortedOpprettSakResponse().last().id.toString(), *logValues)
+        findSakResponse.sortedOpprettSakResponse().last().id.toString()
     }
 }
+
+fun List<OpprettSakResponse>.sortedOpprettSakResponse(): List<OpprettSakResponse> =
+        sortedBy { it.opprettetTidspunkt }
