@@ -53,8 +53,8 @@ class SakClient constructor(val url: String, val oidcClient: StsOidcClient) {
     suspend fun findSak(
         pasientAktoerId: String,
         msgId: String
-    ): OpprettSakResponse? = retry("finn_sak") {
-        client.get<OpprettSakResponse?>(url) {
+    ): List<OpprettSakResponse>? = retry("finn_sak") {
+        client.get<List<OpprettSakResponse>?>(url) {
             contentType(ContentType.Application.Json)
             header("X-Correlation-ID", msgId)
             header("Authorization", "Bearer ${oidcClient.oidcToken().access_token}")
