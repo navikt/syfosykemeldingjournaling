@@ -5,7 +5,7 @@ import no.nav.syfo.kafka.KafkaCredentials
 
 data class Environment(
     val applicationPort: Int = getEnvVar("APPLICATION_PORT", "8080").toInt(),
-    val applicationThreads: Int = getEnvVar("APPLICATION_THREADS", "4").toInt(),
+    val applicationThreads: Int = getEnvVar("APPLICATION_THREADS", "1").toInt(),
     val applicationName: String = getEnvVar("NAIS_APP_NAME", "syfosmsak"),
     override val kafkaBootstrapServers: String = getEnvVar("KAFKA_BOOTSTRAP_SERVERS_URL"),
     val sm2013AutomaticHandlingTopic: String = getEnvVar("KAFKA_SM2013_AUTOMATIC_TOPIC", "privat-syfo-sm2013-automatiskBehandling"),

@@ -6,7 +6,7 @@ metadata:
   labels:
     team: "teamsykefravr"
 spec:
-  name: "syfosmjoark"
+  name: "syfosmsak"
   image: "repo.adeo.no:5443/syfo/syfosmsak:@@VERSION@@"
   replicas:
     min: 1

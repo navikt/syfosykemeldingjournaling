@@ -3,7 +3,7 @@ import com.github.jengelman.gradle.plugins.shadow.transformers.ServiceFileTransf
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 group = "no.nav.syfo"
-version = "1.0.5"
+version = "1.0.6"
 
 val confluentVersion = "5.0.0"
 val coroutinesVersion = "1.1.1"
@@ -11,11 +11,11 @@ val jacksonVersion = "2.9.8"
 val kafkaVersion = "2.1.1"
 val kafkaEmbeddedVersion = "2.0.2"
 val kluentVersion = "1.47"
-val ktorVersion = "1.1.3"
+val ktorVersion = "1.2.0"
 val logstashLogbackEncoder = "5.3"
 val logbackVersion = "1.2.3"
 val prometheusVersion = "0.6.0"
-val smCommonVersion = "1.0.19"
+val smCommonVersion = "1.0.20"
 val spekVersion = "2.0.2"
 val syfosmoppgaveSchemasVersion = "1.2-SNAPSHOT"
 val junitPlatformLauncher = "1.0.0"
@@ -30,15 +30,11 @@ val jaxbRuntimeVersion = "2.4.0-b180830.0438"
 val javaxJaxwsApiVersion = "2.2.1"
 val jaxbApiVersion = "2.4.0-b180830.0359"
 
-tasks.withType<Jar> {
-    manifest.attributes["Main-Class"] = "no.nav.syfo.BootstrapKt"
-}
-
 
 plugins {
     java
-    kotlin("jvm") version "1.3.21"
-    id("org.jmailen.kotlinter") version "1.21.0"
+    kotlin("jvm") version "1.3.31"
+    id("org.jmailen.kotlinter") version "1.26.0"
     id("com.diffplug.gradle.spotless") version "3.18.0"
     id("com.github.johnrengelman.shadow") version "4.0.4"
 }
@@ -118,6 +114,11 @@ dependencies {
 
 
 tasks {
+
+    withType<Jar> {
+        manifest.attributes["Main-Class"] = "no.nav.syfo.BootstrapKt"
+    }
+    
     create("printVersion") {
         println(project.version)
     }

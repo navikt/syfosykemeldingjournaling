@@ -1,9 +1,7 @@
 package no.nav.syfo.model
 
-import kotlinx.serialization.Serializable
 import java.time.ZonedDateTime
 
-@Serializable
 data class OpprettSak(
     val tema: String,
     val applikasjon: String,
@@ -12,7 +10,6 @@ data class OpprettSak(
     val fagsakNr: String?
 )
 
-@Serializable
 data class OpprettSakResponse(
     val id: Long,
     val tema: String,

@@ -18,11 +18,10 @@ class PdfgenClient(
     override val coroutineContext: CoroutineContext
 ) : CoroutineScope {
     suspend fun createPdf(payload: PdfPayload): ByteArray = retry("pdfgen") {
-        // TODO: Remove this workaround whenever ktor issue #1009 is fixed
         httpClient.call(url) {
             contentType(ContentType.Application.Json)
             method = HttpMethod.Post
             body = payload
-        }.use { it.response.readBytes() }
+        }.response.readBytes()
     }
 }

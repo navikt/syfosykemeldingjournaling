@@ -20,6 +20,7 @@ import io.ktor.util.KtorExperimentalAPI
 import io.prometheus.client.hotspot.DefaultExports
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
@@ -187,8 +188,17 @@ fun createKafkaStream(streamProperties: Properties, env: Environment): KafkaStre
     return KafkaStreams(streamsBuilder.build(), streamProperties)
 }
 
+fun CoroutineScope.createListener(applicationState: ApplicationState, action: suspend CoroutineScope.() -> Unit): Job =
+        launch {
+            try {
+                action()
+            } finally {
+                applicationState.running = false
+            }
+        }
+
 @KtorExperimentalAPI
-fun CoroutineScope.launchListeners(
+suspend fun CoroutineScope.launchListeners(
     env: Environment,
     applicationState: ApplicationState,
     consumerProperties: Properties,
@@ -198,12 +208,11 @@ fun CoroutineScope.launchListeners(
     pdfgenClient: PdfgenClient,
     personV3: PersonV3
 ) {
-    try {
-        val listeners = (1..env.applicationThreads).map {
-            launch {
+        val sakListeners = 0.until(env.applicationThreads).map {
                 val kafkaconsumer = KafkaConsumer<String, String>(consumerProperties)
                 kafkaconsumer.subscribe(listOf(env.sm2013SakTopic))
 
+            createListener(applicationState) {
                 blockingApplicationLogic(env,
                         kafkaconsumer,
                         producer,
@@ -216,10 +225,7 @@ fun CoroutineScope.launchListeners(
         }.toList()
 
         applicationState.initialized = true
-        runBlocking { listeners.forEach { it.join() } }
-    } finally {
-        applicationState.running = false
-    }
+        sakListeners.forEach { it.join() }
 }
 
 @KtorExperimentalAPI

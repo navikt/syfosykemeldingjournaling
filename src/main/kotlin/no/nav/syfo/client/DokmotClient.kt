@@ -1,9 +1,7 @@
 package no.nav.syfo.client
 
-import io.ktor.client.call.receive
 import io.ktor.client.request.header
 import io.ktor.client.request.post
-import io.ktor.client.response.HttpResponse
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import io.ktor.util.KtorExperimentalAPI
@@ -23,11 +21,10 @@ class DokmotClient constructor(
     suspend fun createJournalpost(
         mottaInngaaendeForsendelse: MottaInngaaendeForsendelse
     ): MottaInngaandeForsendelseResultat = retry("dokmotinngaaende") {
-        // TODO: Remove this workaround whenever ktor issue #1009 is fixed
-        httpClient.post<HttpResponse>(url) {
+        httpClient.post<MottaInngaandeForsendelseResultat>(url) {
             contentType(ContentType.Application.Json)
             header("Authorization", "Bearer ${stsClient.oidcToken().access_token}")
             body = mottaInngaaendeForsendelse
-        }.use { it.call.response.receive<MottaInngaandeForsendelseResultat>() }
+        }
     }
 }

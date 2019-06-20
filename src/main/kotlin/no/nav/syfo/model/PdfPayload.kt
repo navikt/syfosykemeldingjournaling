@@ -1,9 +1,7 @@
 package no.nav.syfo.model
 
-import kotlinx.serialization.Serializable
 import no.nav.syfo.sm.Diagnosekoder
 
-@Serializable
 data class PdfPayload(
     val pasient: Pasient,
     val hovedDiagnose: EnumRepresentation?,
