@@ -27,6 +27,7 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import net.logstash.logback.argument.StructuredArgument
 import net.logstash.logback.argument.StructuredArguments.keyValue
 import no.nav.syfo.api.registerNaisApi
 import no.nav.syfo.client.DokmotClient
@@ -283,28 +284,7 @@ suspend fun onJournalRequest(
 
     val pdfPayload = createPdfPayload(receivedSykmelding, validationResult, patient.await())
 
-    // TODO this is not a good why find a better way plz
-    var sakid: String?
-
-    val findSakResponseDeferred = async {
-        sakClient.findSak(receivedSykmelding.sykmelding.pasientAktoerId, receivedSykmelding.msgId)
-    }
-
-    val findSakResponse = findSakResponseDeferred.await()
-
-    if (findSakResponseDeferred.await().id.toString().isBlank()) {
-        val createSakResponseDeferred = async {
-            sakClient.createSak(receivedSykmelding.sykmelding.pasientAktoerId, receivedSykmelding.msgId)
-        }
-        val createSakResponse = createSakResponseDeferred.await()
-        sakid = createSakResponse.id.toString()
-
-        CASE_CREATED_COUNTER.inc()
-        log.info("Created a sak, {} $logKeys", createSakResponse.id.toString(), *logValues)
-    } else {
-        log.info("Found a sak, {} $logKeys", findSakResponse.id.toString(), *logValues)
-        sakid = findSakResponse.id.toString()
-    }
+    val sakid = findSakid(sakClient, receivedSykmelding, logKeys, logValues)
 
     val pdf = pdfgenClient.createPdf(pdfPayload)
     log.info("PDF generated $logKeys", *logValues)
@@ -404,5 +384,35 @@ fun CoroutineScope.fetchPerson(personV3: PersonV3, ident: String): Deferred<TPSP
         personV3.hentPerson(HentPersonRequest()
                 .withAktoer(PersonIdent().withIdent(NorskIdent().withIdent(ident)))
         ).person
+    }
+}
+
+@KtorExperimentalAPI
+suspend fun CoroutineScope.findSakid(
+    sakClient: SakClient,
+    receivedSykmelding: ReceivedSykmelding,
+    logKeys: String,
+    logValues: Array<StructuredArgument>
+): String {
+
+    val findSakResponseDeferred = async {
+        sakClient.findSak(receivedSykmelding.sykmelding.pasientAktoerId, receivedSykmelding.msgId)
+    }
+
+    val findSakResponse = findSakResponseDeferred.await()
+
+    return if (findSakResponse?.id == null) {
+        val createSakResponseDeferred = async {
+            sakClient.createSak(receivedSykmelding.sykmelding.pasientAktoerId, receivedSykmelding.msgId)
+        }
+        val createSakResponse = createSakResponseDeferred.await()
+
+        CASE_CREATED_COUNTER.inc()
+        log.info("Created a sak, {} $logKeys", createSakResponse.id.toString(), *logValues)
+
+        createSakResponse.id.toString()
+    } else {
+        log.info("Found a sak, {} $logKeys", findSakResponse.id.toString(), *logValues)
+        findSakResponse.id.toString()
     }
 }
