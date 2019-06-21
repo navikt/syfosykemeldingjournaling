@@ -55,6 +55,7 @@ import no.nav.syfo.model.Pasient
 import no.nav.syfo.model.PdfPayload
 import no.nav.syfo.model.Person
 import no.nav.syfo.model.ReceivedSykmelding
+import no.nav.syfo.model.Status
 import no.nav.syfo.model.ValidationResult
 import no.nav.syfo.model.toPDFFormat
 import no.nav.syfo.sak.avro.RegisterJournal
@@ -290,7 +291,7 @@ suspend fun onJournalRequest(
     val pdf = pdfgenClient.createPdf(pdfPayload)
     log.info("PDF generated $logKeys", *logValues)
 
-    val journalpostPayload = createJournalpostPayload(receivedSykmelding, sakid, pdf)
+    val journalpostPayload = createJournalpostPayload(receivedSykmelding, sakid, pdf, validationResult)
     val journalpost = dokmotClient.createJournalpost(journalpostPayload)
 
     val registerJournal = RegisterJournal().apply {
@@ -308,7 +309,8 @@ suspend fun onJournalRequest(
 fun createJournalpostPayload(
     receivedSykmelding: ReceivedSykmelding,
     caseId: String,
-    pdf: ByteArray
+    pdf: ByteArray,
+    validationResult: ValidationResult
 ) = MottaInngaaendeForsendelse(
         forsokEndeligJF = true,
         forsendelseInformasjon = ForsendelseInformasjon(
@@ -322,7 +324,7 @@ fun createJournalpostPayload(
                 forsendelseInnsendt = receivedSykmelding.sykmelding.behandletTidspunkt.atZone(ZoneId.systemDefault()),
                 forsendelseMottatt = receivedSykmelding.mottattDato.atZone(ZoneId.systemDefault()),
                 mottaksKanal = "EIA", // TODO Oppdateres når vi får ny mottakskanal
-                tittel = "Sykmelding fom:${receivedSykmelding.sykmelding.perioder.first().fom} tom:${receivedSykmelding.sykmelding.perioder.last().tom}",
+                tittel = createTittleJournalpost(validationResult, receivedSykmelding),
                 arkivSak = ArkivSak(
                         arkivSakSystem = "FS22",
                         arkivSakId = caseId
@@ -330,7 +332,7 @@ fun createJournalpostPayload(
         ),
         tilleggsopplysninger = listOf(),
         dokumentInfoHoveddokument = DokumentInfo(
-                tittel = "Sykmelding fom:${receivedSykmelding.sykmelding.perioder.first().fom} tom:${receivedSykmelding.sykmelding.perioder.last().tom}",
+                tittel = createTittleJournalpost(validationResult, receivedSykmelding),
                 dokumentkategori = "Sykmelding",
                 dokumentVariant = listOf(
                         DokumentVariant(
@@ -420,3 +422,11 @@ suspend fun CoroutineScope.findSakid(
 
 fun List<OpprettSakResponse>.sortedOpprettSakResponse(): List<OpprettSakResponse> =
         sortedBy { it.opprettetTidspunkt }
+
+fun createTittleJournalpost(validationResult: ValidationResult, receivedSykmelding: ReceivedSykmelding): String {
+    return if (validationResult.status == Status.INVALID) {
+        "Avvist Sykmelding fom:${receivedSykmelding.sykmelding.perioder.first().fom} tom:${receivedSykmelding.sykmelding.perioder.last().tom}"
+    } else {
+        "Sykmelding fom:${receivedSykmelding.sykmelding.perioder.first().fom} tom:${receivedSykmelding.sykmelding.perioder.last().tom}"
+    }
+}
