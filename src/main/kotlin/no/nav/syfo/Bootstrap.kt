@@ -323,7 +323,7 @@ fun createJournalpostPayload(
                 kanalReferanseId = receivedSykmelding.msgId,
                 forsendelseInnsendt = receivedSykmelding.sykmelding.behandletTidspunkt.atZone(ZoneId.systemDefault()),
                 forsendelseMottatt = receivedSykmelding.mottattDato.atZone(ZoneId.systemDefault()),
-                mottaksKanal = "EIA", // TODO Oppdateres når vi får ny mottakskanal
+                mottaksKanal = "HELSENETTET",
                 tittel = createTittleJournalpost(validationResult, receivedSykmelding),
                 arkivSak = ArkivSak(
                         arkivSakSystem = "FS22",
