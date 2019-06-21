@@ -402,7 +402,7 @@ suspend fun CoroutineScope.findSakid(
 
     val findSakResponse = findSakResponseDeferred.await()
 
-    return if (findSakResponse?.sortedOpprettSakResponse()?.lastOrNull()?.id == null) {
+    return if (findSakResponse == null && findSakResponse?.sortedOpprettSakResponse()?.lastOrNull()?.id == null) {
         val createSakResponseDeferred = async {
             sakClient.createSak(receivedSykmelding.sykmelding.pasientAktoerId, receivedSykmelding.msgId)
         }
