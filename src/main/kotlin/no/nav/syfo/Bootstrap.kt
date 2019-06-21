@@ -402,7 +402,10 @@ suspend fun CoroutineScope.findSakid(
 
     val findSakResponse = findSakResponseDeferred.await()
 
-    return if (findSakResponse == null && findSakResponse?.sortedOpprettSakResponse()?.lastOrNull()?.id == null) {
+    return if (findSakResponse != null && findSakResponse.isNotEmpty() && findSakResponse.sortedOpprettSakResponse().lastOrNull()?.id != null) {
+        log.info("Found a sak, {} $logKeys", findSakResponse.sortedOpprettSakResponse().last().id.toString(), *logValues)
+        findSakResponse.sortedOpprettSakResponse().last().id.toString()
+        } else {
         val createSakResponseDeferred = async {
             sakClient.createSak(receivedSykmelding.sykmelding.pasientAktoerId, receivedSykmelding.msgId)
         }
@@ -412,9 +415,6 @@ suspend fun CoroutineScope.findSakid(
         log.info("Created a sak, {} $logKeys", createSakResponse.id.toString(), *logValues)
 
         createSakResponse.id.toString()
-    } else {
-        log.info("Found a sak, {} $logKeys", findSakResponse.sortedOpprettSakResponse().last().id.toString(), *logValues)
-        findSakResponse.sortedOpprettSakResponse().last().id.toString()
     }
 }
 
