@@ -112,8 +112,10 @@ val httpClient = HttpClient(CIO) {
     }
 }
 
+val coroutineContext = Executors.newFixedThreadPool(2).asCoroutineDispatcher()
+
 @KtorExperimentalAPI
-fun main() = runBlocking(Executors.newFixedThreadPool(4).asCoroutineDispatcher()) {
+fun main() = runBlocking(coroutineContext) {
     DefaultExports.initialize()
     val env = Environment()
     val credentials = objectMapper.readValue<VaultCredentials>(Paths.get("/var/run/secrets/nais.io/vault/credentials.json").toFile())
@@ -159,9 +161,7 @@ fun createKafkaStream(streamProperties: Properties, env: Environment): KafkaStre
             listOf(
                     env.sm2013AutomaticHandlingTopic,
                     env.sm2013ManualHandlingTopic,
-                    env.sm2013InvalidHandlingTopic,
-                    env.smpapirAutomaticHandlingTopic,
-                    env.smpapirManualHandlingTopic
+                    env.sm2013InvalidHandlingTopic
             ), Consumed.with(Serdes.String(), Serdes.String())
     )
 
