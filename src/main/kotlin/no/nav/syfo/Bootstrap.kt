@@ -49,7 +49,6 @@ import no.nav.syfo.model.DokumentInfo
 import no.nav.syfo.model.DokumentVariant
 import no.nav.syfo.model.ForsendelseInformasjon
 import no.nav.syfo.model.MottaInngaaendeForsendelse
-import no.nav.syfo.model.OpprettSakResponse
 import no.nav.syfo.model.Organisasjon
 import no.nav.syfo.model.Pasient
 import no.nav.syfo.model.PdfPayload
@@ -286,18 +285,18 @@ suspend fun onJournalRequest(
 
     val pdfPayload = createPdfPayload(receivedSykmelding, validationResult, patient.await())
 
-    val sakid = findSakid(sakClient, receivedSykmelding, logKeys, logValues)
+    val sak = sakClient.findOrCreateSak(receivedSykmelding.sykmelding.pasientAktoerId, receivedSykmelding.msgId, logKeys, logValues)
 
     val pdf = pdfgenClient.createPdf(pdfPayload)
     log.info("PDF generated $logKeys", *logValues)
 
-    val journalpostPayload = createJournalpostPayload(receivedSykmelding, sakid, pdf, validationResult)
+    val journalpostPayload = createJournalpostPayload(receivedSykmelding, sak.id.toString(), pdf, validationResult)
     val journalpost = dokmotClient.createJournalpost(journalpostPayload)
 
     val registerJournal = RegisterJournal().apply {
         journalpostKilde = "AS36"
         messageId = receivedSykmelding.msgId
-        sakId = sakid
+        sakId = sak.id.toString()
         journalpostId = journalpost.journalpostId
     }
     producer.send(ProducerRecord(env.journalCreatedTopic, receivedSykmelding.sykmelding.id, registerJournal))
@@ -389,30 +388,6 @@ fun CoroutineScope.fetchPerson(personV3: PersonV3, ident: String): Deferred<TPSP
         ).person
     }
 }
-
-@KtorExperimentalAPI
-suspend fun findSakid(
-    sakClient: SakClient,
-    receivedSykmelding: ReceivedSykmelding,
-    logKeys: String,
-    logValues: Array<StructuredArgument>
-): String {
-    val findSakResponse = sakClient.findSak(receivedSykmelding.sykmelding.pasientAktoerId, receivedSykmelding.msgId)
-
-    return if (!findSakResponse.isNullOrEmpty()) {
-        findSakResponse.sortedOpprettSakResponse().last().id.toString().also {
-            log.info("Found a sak, {} $logKeys", it, *logValues)
-        }
-    } else {
-        sakClient.createSak(receivedSykmelding.sykmelding.pasientAktoerId, receivedSykmelding.msgId).id.toString().also {
-            CASE_CREATED_COUNTER.inc()
-            log.info("Created a sak, {} $logKeys", it, *logValues)
-        }
-    }
-}
-
-fun List<OpprettSakResponse>.sortedOpprettSakResponse(): List<OpprettSakResponse> =
-        sortedBy { it.opprettetTidspunkt }
 
 fun createTittleJournalpost(validationResult: ValidationResult, receivedSykmelding: ReceivedSykmelding): String {
     return if (validationResult.status == Status.INVALID) {

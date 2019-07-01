@@ -15,9 +15,13 @@ import io.ktor.client.request.post
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import io.ktor.util.KtorExperimentalAPI
+import net.logstash.logback.argument.StructuredArgument
+import net.logstash.logback.argument.StructuredArguments.keyValue
 import no.nav.syfo.helpers.retry
+import no.nav.syfo.log
+import no.nav.syfo.metrics.CASE_CREATED_COUNTER
 import no.nav.syfo.model.OpprettSak
-import no.nav.syfo.model.OpprettSakResponse
+import no.nav.syfo.model.SakResponse
 
 @KtorExperimentalAPI
 class SakClient constructor(val url: String, val oidcClient: StsOidcClient) {
@@ -32,11 +36,11 @@ class SakClient constructor(val url: String, val oidcClient: StsOidcClient) {
         }
     }
 
-    suspend fun createSak(
+    private suspend fun createSak(
         pasientAktoerId: String,
         msgId: String
-    ): OpprettSakResponse = retry("sak_opprett") {
-        client.post<OpprettSakResponse>(url) {
+    ): SakResponse = retry("sak_opprett") {
+        client.post<SakResponse>(url) {
             contentType(ContentType.Application.Json)
             header("X-Correlation-ID", msgId)
             header("Authorization", "Bearer ${oidcClient.oidcToken().access_token}")
@@ -50,17 +54,37 @@ class SakClient constructor(val url: String, val oidcClient: StsOidcClient) {
         }
     }
 
-    suspend fun findSak(
+    private suspend fun findSak(
         pasientAktoerId: String,
         msgId: String
-    ): List<OpprettSakResponse>? = retry("finn_sak") {
-        client.get<List<OpprettSakResponse>?>(url) {
+    ): List<SakResponse>? = retry("finn_sak") {
+        client.get<List<SakResponse>?>(url) {
             contentType(ContentType.Application.Json)
             header("X-Correlation-ID", msgId)
             header("Authorization", "Bearer ${oidcClient.oidcToken().access_token}")
             parameter("tema", "SYM")
             parameter("aktoerId", pasientAktoerId)
             parameter("applikasjon", "FS22")
+        }
+    }
+
+    suspend fun findOrCreateSak(
+        pasientAktoerId: String,
+        msgId: String,
+        logKeys: String,
+        logValues: Array<StructuredArgument>
+    ): SakResponse {
+        val findSakResponse = findSak(pasientAktoerId, msgId)
+
+        return if (!findSakResponse.isNullOrEmpty()) {
+            findSakResponse.sortedBy { it.opprettetTidspunkt }.last().also {
+                log.info("Found a sak, {} $logKeys", keyValue("saksId", it.id), *logValues)
+            }
+        } else {
+            createSak(pasientAktoerId, msgId).also {
+                CASE_CREATED_COUNTER.inc()
+                log.info("Created a sak, {} $logKeys", keyValue("saksId", it.id), *logValues)
+            }
         }
     }
 }
