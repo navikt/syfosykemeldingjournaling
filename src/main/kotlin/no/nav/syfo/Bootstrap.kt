@@ -140,18 +140,18 @@ fun main() = runBlocking(coroutineContext) {
     val producerConfig = kafkaBaseConfig.toProducerConfig(env.applicationName, KafkaAvroSerializer::class)
     val producer = KafkaProducer<String, RegisterJournal>(producerConfig)
 
-    val streamProperties =
-                kafkaBaseConfig.toStreamsConfig(env.applicationName, valueSerde = Serdes.String()::class)
+    val streamProperties = kafkaBaseConfig.toStreamsConfig(env.applicationName, valueSerde = Serdes.String()::class)
     val kafkaStream = createKafkaStream(streamProperties, env)
 
     kafkaStream.start()
 
     launchListeners(env, applicationState, consumerConfig, producer, sakClient, dokmotClient, pdfgenClient, personV3)
 
-        Runtime.getRuntime().addShutdownHook(Thread {
-            kafkaStream.close()
-            applicationServer.stop(10, 10, TimeUnit.SECONDS)
-        })
+    Runtime.getRuntime().addShutdownHook(Thread {
+        kafkaStream.close()
+        applicationState.running = false
+        applicationServer.stop(10, 10, TimeUnit.SECONDS)
+    })
 }
 
 fun createKafkaStream(streamProperties: Properties, env: Environment): KafkaStreams {
@@ -391,32 +391,23 @@ fun CoroutineScope.fetchPerson(personV3: PersonV3, ident: String): Deferred<TPSP
 }
 
 @KtorExperimentalAPI
-suspend fun CoroutineScope.findSakid(
+suspend fun findSakid(
     sakClient: SakClient,
     receivedSykmelding: ReceivedSykmelding,
     logKeys: String,
     logValues: Array<StructuredArgument>
 ): String {
+    val findSakResponse = sakClient.findSak(receivedSykmelding.sykmelding.pasientAktoerId, receivedSykmelding.msgId)
 
-    val findSakResponseDeferred = async {
-        sakClient.findSak(receivedSykmelding.sykmelding.pasientAktoerId, receivedSykmelding.msgId)
-    }
-
-    val findSakResponse = findSakResponseDeferred.await()
-
-    return if (findSakResponse != null && findSakResponse.isNotEmpty() && findSakResponse.sortedOpprettSakResponse().lastOrNull()?.id != null) {
-        log.info("Found a sak, {} $logKeys", findSakResponse.sortedOpprettSakResponse().last().id.toString(), *logValues)
-        findSakResponse.sortedOpprettSakResponse().last().id.toString()
-        } else {
-        val createSakResponseDeferred = async {
-            sakClient.createSak(receivedSykmelding.sykmelding.pasientAktoerId, receivedSykmelding.msgId)
+    return if (!findSakResponse.isNullOrEmpty()) {
+        findSakResponse.sortedOpprettSakResponse().last().id.toString().also {
+            log.info("Found a sak, {} $logKeys", it, *logValues)
         }
-        val createSakResponse = createSakResponseDeferred.await()
-
-        CASE_CREATED_COUNTER.inc()
-        log.info("Created a sak, {} $logKeys", createSakResponse.id.toString(), *logValues)
-
-        createSakResponse.id.toString()
+    } else {
+        sakClient.createSak(receivedSykmelding.sykmelding.pasientAktoerId, receivedSykmelding.msgId).id.toString().also {
+            CASE_CREATED_COUNTER.inc()
+            log.info("Created a sak, {} $logKeys", it, *logValues)
+        }
     }
 }
 
