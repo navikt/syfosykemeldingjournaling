@@ -6,22 +6,22 @@ group = "no.nav.syfo"
 version = "1.0.7"
 
 val confluentVersion = "5.0.0"
-val coroutinesVersion = "1.1.1"
+val coroutinesVersion = "1.2.2"
 val jacksonVersion = "2.9.8"
 val kafkaVersion = "2.1.1"
 val kafkaEmbeddedVersion = "2.0.2"
-val kluentVersion = "1.47"
-val ktorVersion = "1.2.0"
-val logstashLogbackEncoder = "5.3"
+val kluentVersion = "1.51"
+val ktorVersion = "1.2.2"
+val logstashLogbackEncoder = "6.1"
 val logbackVersion = "1.2.3"
 val prometheusVersion = "0.6.0"
 val smCommonVersion = "1.0.20"
-val spekVersion = "2.0.2"
+val spekVersion = "2.0.5"
 val syfosmoppgaveSchemasVersion = "1.2-SNAPSHOT"
-val junitPlatformLauncher = "1.0.0"
+val junitPlatformLauncher = "1.4.2"
 val navPersonv3Version = "3.2.0"
 val javaxActivationVersion = "1.1.1"
-val cxfVersion = "3.2.7"
+val cxfVersion = "3.2.9"
 val commonsTextVersion = "1.4"
 val jaxbBasicAntVersion = "1.11.1"
 val javaxAnnotationApiVersion = "1.3.2"
@@ -33,21 +33,21 @@ val jaxbApiVersion = "2.4.0-b180830.0359"
 
 plugins {
     java
-    kotlin("jvm") version "1.3.31"
+    kotlin("jvm") version "1.3.40"
     id("org.jmailen.kotlinter") version "1.26.0"
-    id("com.diffplug.gradle.spotless") version "3.18.0"
-    id("com.github.johnrengelman.shadow") version "4.0.4"
+    id("com.diffplug.gradle.spotless") version "3.23.0"
+    id("com.github.johnrengelman.shadow") version "5.0.0"
 }
 
 
 
 repositories {
-    maven (url = "https://repo.adeo.no/repository/maven-snapshots/")
-    maven (url = "https://repo.adeo.no/repository/maven-releases/")
-    maven (url = "https://dl.bintray.com/kotlin/ktor")
-    maven (url = "https://dl.bintray.com/spekframework/spek-dev")
-    maven (url = "http://packages.confluent.io/maven/")
-    maven (url = "https://kotlin.bintray.com/kotlinx")
+    maven(url = "https://repo.adeo.no/repository/maven-snapshots/")
+    maven(url = "https://repo.adeo.no/repository/maven-releases/")
+    maven(url = "https://dl.bintray.com/kotlin/ktor")
+    maven(url = "https://dl.bintray.com/spekframework/spek-dev")
+    maven(url = "http://packages.confluent.io/maven/")
+    maven(url = "https://kotlin.bintray.com/kotlinx")
     mavenCentral()
     jcenter()
 }
@@ -120,7 +120,9 @@ tasks {
     }
     
     create("printVersion") {
-        println(project.version)
+        doLast {
+            println(project.version)
+        }
     }
 
     withType<ShadowJar> {
