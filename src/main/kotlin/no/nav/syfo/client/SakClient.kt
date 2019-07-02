@@ -19,7 +19,6 @@ import net.logstash.logback.argument.StructuredArgument
 import net.logstash.logback.argument.StructuredArguments.keyValue
 import no.nav.syfo.helpers.retry
 import no.nav.syfo.log
-import no.nav.syfo.metrics.CASE_CREATED_COUNTER
 import no.nav.syfo.model.OpprettSak
 import no.nav.syfo.model.SakResponse
 
@@ -76,14 +75,13 @@ class SakClient constructor(val url: String, val oidcClient: StsOidcClient) {
     ): SakResponse {
         val findSakResponse = findSak(pasientAktoerId, msgId)
 
-        return if (!findSakResponse.isNullOrEmpty()) {
-            findSakResponse.sortedBy { it.opprettetTidspunkt }.last().also {
-                log.info("Found a sak, {} $logKeys", keyValue("saksId", it.id), *logValues)
+        return if (findSakResponse.isNullOrEmpty()) {
+            createSak(pasientAktoerId, msgId).also {
+                log.info("Opprettet en sak, {} $logKeys", keyValue("saksId", it.id), *logValues)
             }
         } else {
-            createSak(pasientAktoerId, msgId).also {
-                CASE_CREATED_COUNTER.inc()
-                log.info("Created a sak, {} $logKeys", keyValue("saksId", it.id), *logValues)
+            findSakResponse.sortedBy { it.opprettetTidspunkt }.last().also {
+                log.info("Fant en sak, {} $logKeys", keyValue("saksId", it.id), *logValues)
             }
         }
     }

@@ -27,7 +27,6 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import net.logstash.logback.argument.StructuredArgument
 import net.logstash.logback.argument.StructuredArguments.keyValue
 import no.nav.syfo.api.registerNaisApi
 import no.nav.syfo.client.DokmotClient
@@ -40,8 +39,6 @@ import no.nav.syfo.kafka.loadBaseConfig
 import no.nav.syfo.kafka.toConsumerConfig
 import no.nav.syfo.kafka.toProducerConfig
 import no.nav.syfo.kafka.toStreamsConfig
-import no.nav.syfo.metrics.CASE_CREATED_COUNTER
-import no.nav.syfo.metrics.MESSAGE_PERSISTED_IN_JOARK_COUNTER
 import no.nav.syfo.model.Aktoer
 import no.nav.syfo.model.AktoerWrapper
 import no.nav.syfo.model.ArkivSak
@@ -252,7 +249,7 @@ suspend fun blockingApplicationLogic(
                         objectMapper.readValue(behandlingsUtfallReceivedSykmelding.behandlingsUtfall)
                 onJournalRequest(env, receivedSykmelding, producer, sakClient, dokmotClient, pdfgenClient, personV3, validationResult)
             } catch (e: Exception) {
-                log.error("Error occurred while trying to handle journaling request", e)
+                log.error("En feil oppstod under håndtering av en journalforing foresporsel", e)
                 throw e
             }
         }
@@ -279,7 +276,7 @@ suspend fun onJournalRequest(
             keyValue("orgNr", receivedSykmelding.legekontorOrgNr)
     )
     val logKeys = logValues.joinToString(prefix = "(", postfix = ")", separator = ", ") { "{}" }
-    log.info("Received a SM2013, trying to persist in Joark $logKeys", logValues)
+    log.info("Mottok en sykmelding, prover a lagre i Joark $logKeys", logValues)
 
     val patient = fetchPerson(personV3, receivedSykmelding.personNrPasient)
 
@@ -288,7 +285,7 @@ suspend fun onJournalRequest(
     val sak = sakClient.findOrCreateSak(receivedSykmelding.sykmelding.pasientAktoerId, receivedSykmelding.msgId, logKeys, logValues)
 
     val pdf = pdfgenClient.createPdf(pdfPayload)
-    log.info("PDF generated $logKeys", *logValues)
+    log.info("PDF generert $logKeys", *logValues)
 
     val journalpostPayload = createJournalpostPayload(receivedSykmelding, sak.id.toString(), pdf, validationResult)
     val journalpost = dokmotClient.createJournalpost(journalpostPayload)
@@ -300,9 +297,8 @@ suspend fun onJournalRequest(
         journalpostId = journalpost.journalpostId
     }
     producer.send(ProducerRecord(env.journalCreatedTopic, receivedSykmelding.sykmelding.id, registerJournal))
-    MESSAGE_PERSISTED_IN_JOARK_COUNTER.inc()
 
-    log.info("Message successfully persisted in Joark {} $logKeys", keyValue("journalpostId", journalpost.journalpostId), *logValues)
+    log.info("Melding lagret i Joark {} $logKeys", keyValue("journalpostId", journalpost.journalpostId), *logValues)
 }
 
 fun createJournalpostPayload(
