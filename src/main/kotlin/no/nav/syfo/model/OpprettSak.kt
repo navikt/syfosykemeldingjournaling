@@ -10,7 +10,7 @@ data class OpprettSak(
     val fagsakNr: String?
 )
 
-data class OpprettSakResponse(
+data class SakResponse(
     val id: Long,
     val tema: String,
     val aktoerId: String,

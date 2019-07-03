@@ -27,7 +27,6 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import net.logstash.logback.argument.StructuredArgument
 import net.logstash.logback.argument.StructuredArguments.keyValue
 import no.nav.syfo.api.registerNaisApi
 import no.nav.syfo.client.DokmotClient
@@ -40,8 +39,6 @@ import no.nav.syfo.kafka.loadBaseConfig
 import no.nav.syfo.kafka.toConsumerConfig
 import no.nav.syfo.kafka.toProducerConfig
 import no.nav.syfo.kafka.toStreamsConfig
-import no.nav.syfo.metrics.CASE_CREATED_COUNTER
-import no.nav.syfo.metrics.MESSAGE_PERSISTED_IN_JOARK_COUNTER
 import no.nav.syfo.model.Aktoer
 import no.nav.syfo.model.AktoerWrapper
 import no.nav.syfo.model.ArkivSak
@@ -49,7 +46,6 @@ import no.nav.syfo.model.DokumentInfo
 import no.nav.syfo.model.DokumentVariant
 import no.nav.syfo.model.ForsendelseInformasjon
 import no.nav.syfo.model.MottaInngaaendeForsendelse
-import no.nav.syfo.model.OpprettSakResponse
 import no.nav.syfo.model.Organisasjon
 import no.nav.syfo.model.Pasient
 import no.nav.syfo.model.PdfPayload
@@ -140,18 +136,18 @@ fun main() = runBlocking(coroutineContext) {
     val producerConfig = kafkaBaseConfig.toProducerConfig(env.applicationName, KafkaAvroSerializer::class)
     val producer = KafkaProducer<String, RegisterJournal>(producerConfig)
 
-    val streamProperties =
-                kafkaBaseConfig.toStreamsConfig(env.applicationName, valueSerde = Serdes.String()::class)
+    val streamProperties = kafkaBaseConfig.toStreamsConfig(env.applicationName, valueSerde = Serdes.String()::class)
     val kafkaStream = createKafkaStream(streamProperties, env)
 
     kafkaStream.start()
 
     launchListeners(env, applicationState, consumerConfig, producer, sakClient, dokmotClient, pdfgenClient, personV3)
 
-        Runtime.getRuntime().addShutdownHook(Thread {
-            kafkaStream.close()
-            applicationServer.stop(10, 10, TimeUnit.SECONDS)
-        })
+    Runtime.getRuntime().addShutdownHook(Thread {
+        kafkaStream.close()
+        applicationState.running = false
+        applicationServer.stop(10, 10, TimeUnit.SECONDS)
+    })
 }
 
 fun createKafkaStream(streamProperties: Properties, env: Environment): KafkaStreams {
@@ -253,7 +249,7 @@ suspend fun blockingApplicationLogic(
                         objectMapper.readValue(behandlingsUtfallReceivedSykmelding.behandlingsUtfall)
                 onJournalRequest(env, receivedSykmelding, producer, sakClient, dokmotClient, pdfgenClient, personV3, validationResult)
             } catch (e: Exception) {
-                log.error("Error occurred while trying to handle journaling request", e)
+                log.error("En feil oppstod under håndtering av en journalforing foresporsel", e)
                 throw e
             }
         }
@@ -280,30 +276,29 @@ suspend fun onJournalRequest(
             keyValue("orgNr", receivedSykmelding.legekontorOrgNr)
     )
     val logKeys = logValues.joinToString(prefix = "(", postfix = ")", separator = ", ") { "{}" }
-    log.info("Received a SM2013, trying to persist in Joark $logKeys", logValues)
+    log.info("Mottok en sykmelding, prover a lagre i Joark $logKeys", logValues)
 
     val patient = fetchPerson(personV3, receivedSykmelding.personNrPasient)
 
     val pdfPayload = createPdfPayload(receivedSykmelding, validationResult, patient.await())
 
-    val sakid = findSakid(sakClient, receivedSykmelding, logKeys, logValues)
+    val sak = sakClient.findOrCreateSak(receivedSykmelding.sykmelding.pasientAktoerId, receivedSykmelding.msgId, logKeys, logValues)
 
     val pdf = pdfgenClient.createPdf(pdfPayload)
-    log.info("PDF generated $logKeys", *logValues)
+    log.info("PDF generert $logKeys", *logValues)
 
-    val journalpostPayload = createJournalpostPayload(receivedSykmelding, sakid, pdf, validationResult)
+    val journalpostPayload = createJournalpostPayload(receivedSykmelding, sak.id.toString(), pdf, validationResult)
     val journalpost = dokmotClient.createJournalpost(journalpostPayload)
 
     val registerJournal = RegisterJournal().apply {
         journalpostKilde = "AS36"
         messageId = receivedSykmelding.msgId
-        sakId = sakid
+        sakId = sak.id.toString()
         journalpostId = journalpost.journalpostId
     }
     producer.send(ProducerRecord(env.journalCreatedTopic, receivedSykmelding.sykmelding.id, registerJournal))
-    MESSAGE_PERSISTED_IN_JOARK_COUNTER.inc()
 
-    log.info("Message successfully persisted in Joark {} $logKeys", keyValue("journalpostId", journalpost.journalpostId), *logValues)
+    log.info("Melding lagret i Joark {} $logKeys", keyValue("journalpostId", journalpost.journalpostId), *logValues)
 }
 
 fun createJournalpostPayload(
@@ -389,39 +384,6 @@ fun CoroutineScope.fetchPerson(personV3: PersonV3, ident: String): Deferred<TPSP
         ).person
     }
 }
-
-@KtorExperimentalAPI
-suspend fun CoroutineScope.findSakid(
-    sakClient: SakClient,
-    receivedSykmelding: ReceivedSykmelding,
-    logKeys: String,
-    logValues: Array<StructuredArgument>
-): String {
-
-    val findSakResponseDeferred = async {
-        sakClient.findSak(receivedSykmelding.sykmelding.pasientAktoerId, receivedSykmelding.msgId)
-    }
-
-    val findSakResponse = findSakResponseDeferred.await()
-
-    return if (findSakResponse != null && findSakResponse.isNotEmpty() && findSakResponse.sortedOpprettSakResponse().lastOrNull()?.id != null) {
-        log.info("Found a sak, {} $logKeys", findSakResponse.sortedOpprettSakResponse().last().id.toString(), *logValues)
-        findSakResponse.sortedOpprettSakResponse().last().id.toString()
-        } else {
-        val createSakResponseDeferred = async {
-            sakClient.createSak(receivedSykmelding.sykmelding.pasientAktoerId, receivedSykmelding.msgId)
-        }
-        val createSakResponse = createSakResponseDeferred.await()
-
-        CASE_CREATED_COUNTER.inc()
-        log.info("Created a sak, {} $logKeys", createSakResponse.id.toString(), *logValues)
-
-        createSakResponse.id.toString()
-    }
-}
-
-fun List<OpprettSakResponse>.sortedOpprettSakResponse(): List<OpprettSakResponse> =
-        sortedBy { it.opprettetTidspunkt }
 
 fun createTittleJournalpost(validationResult: ValidationResult, receivedSykmelding: ReceivedSykmelding): String {
     return if (validationResult.status == Status.INVALID) {
