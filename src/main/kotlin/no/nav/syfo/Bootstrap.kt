@@ -27,6 +27,7 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import net.logstash.logback.argument.StructuredArgument
 import net.logstash.logback.argument.StructuredArguments.keyValue
 import no.nav.syfo.api.registerNaisApi
 import no.nav.syfo.client.DokmotClient
@@ -191,6 +192,10 @@ fun CoroutineScope.createListener(applicationState: ApplicationState, action: su
         launch {
             try {
                 action()
+            } catch (e: TrackableException) {
+                log.error("En uhaandtert feil oppstod, applikasjonen restartes. ${e.loggingMeta}",
+                        *e.loggingMeta.logValues,
+                        e.cause)
             } finally {
                 applicationState.running = false
             }
@@ -240,18 +245,13 @@ suspend fun blockingApplicationLogic(
 ) {
     while (applicationState.running) {
         consumer.poll(Duration.ofMillis(0)).forEach {
-            try {
-                val behandlingsUtfallReceivedSykmelding: BehandlingsUtfallReceivedSykmelding =
-                        objectMapper.readValue(it.value())
-                val receivedSykmelding: ReceivedSykmelding =
-                        objectMapper.readValue(behandlingsUtfallReceivedSykmelding.receivedSykmelding)
-                val validationResult: ValidationResult =
-                        objectMapper.readValue(behandlingsUtfallReceivedSykmelding.behandlingsUtfall)
-                onJournalRequest(env, receivedSykmelding, producer, sakClient, dokmotClient, pdfgenClient, personV3, validationResult)
-            } catch (e: Exception) {
-                log.error("En feil oppstod under håndtering av en journalforing foresporsel", e)
-                throw e
-            }
+            val behandlingsUtfallReceivedSykmelding: BehandlingsUtfallReceivedSykmelding =
+                    objectMapper.readValue(it.value())
+            val receivedSykmelding: ReceivedSykmelding =
+                    objectMapper.readValue(behandlingsUtfallReceivedSykmelding.receivedSykmelding)
+            val validationResult: ValidationResult =
+                    objectMapper.readValue(behandlingsUtfallReceivedSykmelding.behandlingsUtfall)
+            onJournalRequest(env, receivedSykmelding, producer, sakClient, dokmotClient, pdfgenClient, personV3, validationResult)
         }
 
         delay(100)
@@ -275,31 +275,53 @@ suspend fun onJournalRequest(
             keyValue("sykmeldingId", receivedSykmelding.sykmelding.id),
             keyValue("orgNr", receivedSykmelding.legekontorOrgNr)
     )
-    val logKeys = logValues.joinToString(prefix = "(", postfix = ")", separator = ", ") { "{}" }
-    log.info("Mottok en sykmelding, prover a lagre i Joark $logKeys", logValues)
+    val loggingMeta = LoggingMeta(logValues)
+    wrapExceptions(loggingMeta) {
+        log.info("Mottok en sykmelding, prover a lagre i Joark $loggingMeta", loggingMeta.logValues)
 
-    val patient = fetchPerson(personV3, receivedSykmelding.personNrPasient)
+        val patient = fetchPerson(personV3, receivedSykmelding.personNrPasient)
 
-    val pdfPayload = createPdfPayload(receivedSykmelding, validationResult, patient.await())
+        val pdfPayload = createPdfPayload(receivedSykmelding, validationResult, patient.await())
 
-    val sak = sakClient.findOrCreateSak(receivedSykmelding.sykmelding.pasientAktoerId, receivedSykmelding.msgId, logKeys, logValues)
+        val sak = sakClient.findOrCreateSak(receivedSykmelding.sykmelding.pasientAktoerId, receivedSykmelding.msgId,
+                loggingMeta)
 
-    val pdf = pdfgenClient.createPdf(pdfPayload)
-    log.info("PDF generert $logKeys", *logValues)
+        val pdf = pdfgenClient.createPdf(pdfPayload)
+        log.info("PDF generert $loggingMeta", *loggingMeta.logValues)
 
-    val journalpostPayload = createJournalpostPayload(receivedSykmelding, sak.id.toString(), pdf, validationResult)
-    val journalpost = dokmotClient.createJournalpost(journalpostPayload)
+        val journalpostPayload = createJournalpostPayload(receivedSykmelding, sak.id.toString(), pdf, validationResult)
+        val journalpost = dokmotClient.createJournalpost(journalpostPayload)
 
-    val registerJournal = RegisterJournal().apply {
-        journalpostKilde = "AS36"
-        messageId = receivedSykmelding.msgId
-        sakId = sak.id.toString()
-        journalpostId = journalpost.journalpostId
+        val registerJournal = RegisterJournal().apply {
+            journalpostKilde = "AS36"
+            messageId = receivedSykmelding.msgId
+            sakId = sak.id.toString()
+            journalpostId = journalpost.journalpostId
+        }
+        producer.send(ProducerRecord(env.journalCreatedTopic, receivedSykmelding.sykmelding.id, registerJournal))
+
+        log.info("Melding lagret i Joark {} $loggingMeta",
+                keyValue("journalpostId", journalpost.journalpostId),
+                *loggingMeta.logValues)
     }
-    producer.send(ProducerRecord(env.journalCreatedTopic, receivedSykmelding.sykmelding.id, registerJournal))
-
-    log.info("Melding lagret i Joark {} $logKeys", keyValue("journalpostId", journalpost.journalpostId), *logValues)
 }
+
+suspend fun <T : Any, O> T.wrapExceptions(loggingMeta: LoggingMeta, block: suspend T.() -> O): O {
+    try {
+        return block()
+    } catch (e: Exception) {
+        throw TrackableException(e, loggingMeta)
+    }
+}
+
+data class LoggingMeta(
+    val logValues: Array<StructuredArgument>
+) {
+    private val logFormat: String = logValues.joinToString(prefix = "(", postfix = ")", separator = ", ") { "{}" }
+    override fun toString() = logFormat
+}
+
+class TrackableException(override val cause: Throwable, val loggingMeta: LoggingMeta) : RuntimeException()
 
 fun createJournalpostPayload(
     receivedSykmelding: ReceivedSykmelding,

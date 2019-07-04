@@ -15,8 +15,8 @@ import io.ktor.client.request.post
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import io.ktor.util.KtorExperimentalAPI
-import net.logstash.logback.argument.StructuredArgument
 import net.logstash.logback.argument.StructuredArguments.keyValue
+import no.nav.syfo.LoggingMeta
 import no.nav.syfo.helpers.retry
 import no.nav.syfo.log
 import no.nav.syfo.model.OpprettSak
@@ -70,18 +70,17 @@ class SakClient constructor(val url: String, val oidcClient: StsOidcClient) {
     suspend fun findOrCreateSak(
         pasientAktoerId: String,
         msgId: String,
-        logKeys: String,
-        logValues: Array<StructuredArgument>
+        loggingMeta: LoggingMeta
     ): SakResponse {
         val findSakResponse = findSak(pasientAktoerId, msgId)
 
         return if (findSakResponse.isNullOrEmpty()) {
             createSak(pasientAktoerId, msgId).also {
-                log.info("Opprettet en sak, {} $logKeys", keyValue("saksId", it.id), *logValues)
+                log.info("Opprettet en sak, {} $loggingMeta", keyValue("saksId", it.id), *loggingMeta.logValues)
             }
         } else {
             findSakResponse.sortedBy { it.opprettetTidspunkt }.last().also {
-                log.info("Fant en sak, {} $logKeys", keyValue("saksId", it.id), *logValues)
+                log.info("Fant en sak, {} $loggingMeta", keyValue("saksId", it.id), *loggingMeta.logValues)
             }
         }
     }
