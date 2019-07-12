@@ -15,11 +15,11 @@ val ktorVersion = "1.2.2"
 val logstashLogbackEncoder = "6.1"
 val logbackVersion = "1.2.3"
 val prometheusVersion = "0.6.0"
-val smCommonVersion = "1.0.20"
+val smCommonVersion = "1.0.22"
 val spekVersion = "2.0.5"
-val syfosmoppgaveSchemasVersion = "1.2-SNAPSHOT"
+val syfosmoppgaveSchemasVersion = "785e8a93a3b881e89862035abe539c795c1222dd"
 val junitPlatformLauncher = "1.4.2"
-val navPersonv3Version = "3.2.0"
+val navPersonv3Version = "1.2019.07.11-06.47-b55f47790a9d"
 val javaxActivationVersion = "1.1.1"
 val cxfVersion = "3.2.9"
 val commonsTextVersion = "1.4"
@@ -42,8 +42,6 @@ plugins {
 
 
 repositories {
-    maven(url = "https://repo.adeo.no/repository/maven-snapshots/")
-    maven(url = "https://repo.adeo.no/repository/maven-releases/")
     maven(url = "https://dl.bintray.com/kotlin/ktor")
     maven(url = "https://dl.bintray.com/spekframework/spek-dev")
     maven(url = "http://packages.confluent.io/maven/")
@@ -82,8 +80,8 @@ dependencies {
     implementation("no.nav.syfo.sm:syfosm-common-ws:$smCommonVersion")
     implementation("no.nav.syfo.sm:syfosm-common-diagnosis-codes:$smCommonVersion")
 
-    implementation("no.nav.syfo:syfooppgave-schemas:$syfosmoppgaveSchemasVersion")
-    implementation("no.nav.tjenester:nav-person-v3-tjenestespesifikasjon:$navPersonv3Version")
+    implementation("no.nav.syfo.schemas:syfosmoppgave-avro:$syfosmoppgaveSchemasVersion")
+    implementation("no.nav.tjenestespesifikasjoner:person-v3-tjenestespesifikasjon:$navPersonv3Version")
 
     implementation("org.apache.commons:commons-text:$commonsTextVersion")
     implementation("org.apache.cxf:cxf-rt-frontend-jaxws:$cxfVersion")
