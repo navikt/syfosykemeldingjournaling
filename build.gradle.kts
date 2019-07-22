@@ -39,8 +39,6 @@ plugins {
     id("com.github.johnrengelman.shadow") version "5.0.0"
 }
 
-
-
 repositories {
     maven(url = "https://dl.bintray.com/kotlin/ktor")
     maven(url = "https://dl.bintray.com/spekframework/spek-dev")
@@ -49,7 +47,6 @@ repositories {
     mavenCentral()
     jcenter()
 }
-
 
 dependencies {
     implementation(kotlin("stdlib"))
