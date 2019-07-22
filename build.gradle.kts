@@ -98,7 +98,6 @@ dependencies {
         exclude(group = "com.sun.xml.ws", module = "policy")
     }
 
-
     testImplementation("org.amshove.kluent:kluent:$kluentVersion")
     testImplementation("org.spekframework.spek2:spek-dsl-jvm:$spekVersion")
     testImplementation("io.ktor:ktor-server-test-host:$ktorVersion")
