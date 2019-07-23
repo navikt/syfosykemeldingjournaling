@@ -21,15 +21,15 @@ jobs:
       - barkendeploy/docker-build
       - barkendeploy/docker-login
       - barkendeploy/docker-push
-  verify:
+  deploy_dev:
     docker:
-      - image: "circleci/openjdk:11-jdk"
+      - image: "circleci/deployment-cli:v0.1.9"
+    context: barkendeploy
     steps:
-      - checkout
-      - barkendeploy/gradle-cache-restore
-      - run:
-          name: Build and run tests
-          command: ./gradlew shadowJar
+      - barkendeploy/workspace-restore
+      - barkendeploy/load-persisted-env
+      - barkendeploy/deploy-create:
+          cluster: dev-fss
 
 workflows:
   version: 2
@@ -49,20 +49,10 @@ workflows:
           context: barkendeploy
           requires:
             - build_jar
-  verify_branch:
-    jobs:
-      - verify:
-          filters:
-            branches:
-              ignore: master
-  deploy_branch:
+  build_branch:
     jobs:
       - build_jar:
           context: barkendeploy
-      - barkendeploy/deployment:
-          deployments:
-            - barkendeploy/deploy-create:
-                cluster: dev-fss
-          context: barkendeploy
-          requires:
-            - build_jar
+          filters:
+            branches:
+              ignore: master
