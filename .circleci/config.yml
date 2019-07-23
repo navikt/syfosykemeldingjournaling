@@ -21,10 +21,13 @@ jobs:
       - barkendeploy/docker-build
       - barkendeploy/docker-login
       - barkendeploy/docker-push
-  barkendeploy/deployment:
-    name: deploy_dev
+  deploy_dev:
+    docker:
+      - image: "circleci/deployment-cli:v0.1.9"
     context: barkendeploy
-    deployments:
+    steps:
+      - barkendeploy/workspace-restore
+      - barkendeploy/load-persisted-env
       - barkendeploy/deploy-create:
           cluster: dev-fss
 
