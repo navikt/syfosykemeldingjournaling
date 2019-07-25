@@ -17,6 +17,7 @@ jobs:
       - run:
           name: Build jar file
           command: ./gradlew shadowJar -x test
+      - barkendeploy/skip-on-env-var
       - barkendeploy/gradle-cache-persist
       - barkendeploy/docker-build
       - barkendeploy/docker-login
@@ -44,14 +45,18 @@ workflows:
     jobs:
       - build_jar:
           context: barkendeploy
+          environment:
+            DEPLOY: false
           filters:
             branches:
               ignore: master
       - barkendeploy/deployment:
+          environment:
+            DEPLOY: false
           deployments:
+            - barkendeploy/skip-on-env-var
             - barkendeploy/deploy-create:
                 cluster: dev-fss
-                deploy: "false"
           context: barkendeploy
           requires:
             - build_jar
