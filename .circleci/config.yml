@@ -48,8 +48,11 @@ workflows:
             branches:
               ignore: master
       - barkendeploy/deployment:
-          context: barkendeploy
           deployments:
             - barkendeploy/deploy-create:
                 cluster: dev-fss
                 deploy: "false"
+          context: barkendeploy
+          requires:
+            - build_jar
+
