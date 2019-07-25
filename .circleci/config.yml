@@ -45,14 +45,10 @@ workflows:
     jobs:
       - build_jar:
           context: barkendeploy
-          environment:
-            DEPLOY: false
           filters:
             branches:
               ignore: master
       - barkendeploy/deployment:
-          environment:
-            DEPLOY: false
           deployments:
             - barkendeploy/skip-on-env-var
             - barkendeploy/deploy-create:
