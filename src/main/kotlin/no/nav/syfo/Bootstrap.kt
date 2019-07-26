@@ -281,7 +281,7 @@ suspend fun onJournalRequest(
 
         val patient = fetchPerson(personV3, receivedSykmelding.personNrPasient)
 
-        val pdfPayload = createPdfPayload(receivedSykmelding, validationResult, patient.await())
+        val pdfPayload = createPdfPayload(receivedSykmelding, validationResult, patient)
 
         val sak = sakClient.findOrCreateSak(receivedSykmelding.sykmelding.pasientAktoerId, receivedSykmelding.msgId,
                 loggingMeta)
@@ -395,16 +395,14 @@ fun Application.initRouting(applicationState: ApplicationState) {
     }
 }
 
-fun CoroutineScope.fetchPerson(personV3: PersonV3, ident: String): Deferred<TPSPerson> = async {
-    retry(
-            callName = "tps_hent_person",
-            retryIntervals = arrayOf(500L, 1000L, 3000L, 5000L, 10000L),
-            legalExceptions = *arrayOf(IOException::class, WstxException::class)
-    ) {
-        personV3.hentPerson(HentPersonRequest()
-                .withAktoer(PersonIdent().withIdent(NorskIdent().withIdent(ident)))
-        ).person
-    }
+suspend fun fetchPerson(personV3: PersonV3, ident: String): TPSPerson = retry(
+        callName = "tps_hent_person",
+        retryIntervals = arrayOf(500L, 1000L, 3000L, 5000L, 10000L),
+        legalExceptions = *arrayOf(IOException::class, WstxException::class)
+) {
+    personV3.hentPerson(HentPersonRequest()
+            .withAktoer(PersonIdent().withIdent(NorskIdent().withIdent(ident)))
+    ).person
 }
 
 fun createTittleJournalpost(validationResult: ValidationResult, receivedSykmelding: ReceivedSykmelding): String {
