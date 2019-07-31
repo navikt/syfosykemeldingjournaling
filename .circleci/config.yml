@@ -2,6 +2,12 @@ version: 2.1
 orbs:
   barkendeploy: navikt/barkendeploy@dev:master
   slack: circleci/slack@3.2.0
+
+parameters:
+  deploy_branch:
+    type: boolean
+    default: false
+
 jobs:
   build_jar:
     docker:
@@ -17,7 +23,8 @@ jobs:
       - run:
           name: Build jar file
           command: ./gradlew shadowJar -x test
-      - barkendeploy/skip-on-env-var
+      - barkendeploy/skip-on-env-var:
+          env_var: << pipeline.parameters.deploy_branch >>
       - barkendeploy/gradle-cache-persist
       - barkendeploy/docker-build
       - barkendeploy/docker-login
@@ -48,12 +55,13 @@ workflows:
           filters:
             branches:
               ignore: master
-      - barkendeploy/deployment:
-          deployments:
-            - barkendeploy/skip-on-env-var
-            - barkendeploy/deploy-create:
-                cluster: dev-fss
-          context: barkendeploy
-          requires:
-            - build_jar
-
+      - when:
+          condition: << pipeline.parameters.deploy_branch >>
+          steps:
+            - barkendeploy/deployment:
+                deployments:
+                  - barkendeploy/deploy-create:
+                      cluster: dev-fss
+                context: barkendeploy
+                requires:
+                  - build_jar
