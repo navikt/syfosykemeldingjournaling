@@ -59,6 +59,7 @@ workflows:
           requires:
             - build_jar
   test_branch:
+    unless: << pipeline.parameters.deploy_branch >>
     jobs:
       - run_tests:
           filters:
