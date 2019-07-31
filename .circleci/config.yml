@@ -60,10 +60,10 @@ workflows:
             - build_jar
   test_branch:
     jobs:
-      run_tests:
-        filters:
-          branches:
-            ignore: master
+      - run_tests:
+          filters:
+            branches:
+              ignore: master
   build_branch:
     when: << pipeline.parameters.deploy_branch >>
     jobs:
