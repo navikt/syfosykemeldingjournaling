@@ -29,7 +29,17 @@ jobs:
       - barkendeploy/docker-build
       - barkendeploy/docker-login
       - barkendeploy/docker-push
-
+  run_tests:
+    docker:
+      - image: "circleci/openjdk:11-jdk"
+    steps:
+      - checkout
+      - setup_remote_docker
+      - barkendeploy/init
+      - barkendeploy/gradle-cache-restore
+      - run:
+          name: Run tests
+          command: ./gradlew test
 workflows:
   version: 2
   build_and_deploy:
@@ -48,20 +58,24 @@ workflows:
           context: barkendeploy
           requires:
             - build_jar
+  test_branch:
+    jobs:
+      run_tests:
+        filters:
+          branches:
+            ignore: master
   build_branch:
+    when: << pipeline.parameters.deploy_branch >>
     jobs:
       - build_jar:
           context: barkendeploy
           filters:
             branches:
               ignore: master
-      - when:
-          condition: << pipeline.parameters.deploy_branch >>
-          steps:
-            - barkendeploy/deployment:
-                deployments:
-                  - barkendeploy/deploy-create:
-                      cluster: dev-fss
-                context: barkendeploy
-                requires:
-                  - build_jar
+      - barkendeploy/deployment:
+          deployments:
+            - barkendeploy/deploy-create:
+                cluster: dev-fss
+          context: barkendeploy
+          requires:
+            - build_jar
