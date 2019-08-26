@@ -20,7 +20,8 @@ class DokmotClient constructor(
 ) : CoroutineScope {
     suspend fun createJournalpost(
         mottaInngaaendeForsendelse: MottaInngaaendeForsendelse
-    ): MottaInngaandeForsendelseResultat = retry("dokmotinngaaende") {
+    ): MottaInngaandeForsendelseResultat = retry(callName = "dokmotinngaaende",
+            retryIntervals = arrayOf(500L, 1000L, 3000L, 5000L, 10000L, 20000L)) {
         httpClient.post<MottaInngaandeForsendelseResultat>(url) {
             contentType(ContentType.Application.Json)
             header("Authorization", "Bearer ${stsClient.oidcToken().access_token}")
