@@ -277,7 +277,7 @@ suspend fun onJournalRequest(
     wrapExceptions(loggingMeta) {
         log.info("Mottok en sykmelding, prover a lagre i Joark $loggingMeta", loggingMeta.logValues)
 
-        val patient = fetchPerson(personV3, receivedSykmelding.personNrPasient)
+        val patient = fetchPerson(personV3, receivedSykmelding.personNrPasient, loggingMeta)
 
         val pdfPayload = createPdfPayload(receivedSykmelding, validationResult, patient)
 
@@ -288,7 +288,7 @@ suspend fun onJournalRequest(
         log.info("PDF generert $loggingMeta", *loggingMeta.logValues)
 
         val journalpostPayload = createJournalpostPayload(receivedSykmelding, sak.id.toString(), pdf, validationResult)
-        val journalpost = dokmotClient.createJournalpost(journalpostPayload)
+        val journalpost = dokmotClient.createJournalpost(journalpostPayload, loggingMeta)
 
         val registerJournal = RegisterJournal().apply {
             journalpostKilde = "AS36"
@@ -393,14 +393,19 @@ fun Application.initRouting(applicationState: ApplicationState) {
     }
 }
 
-suspend fun fetchPerson(personV3: PersonV3, ident: String): TPSPerson = retry(
+suspend fun fetchPerson(personV3: PersonV3, ident: String, loggingMeta: LoggingMeta): TPSPerson = retry(
         callName = "tps_hent_person",
         retryIntervals = arrayOf(500L, 1000L, 3000L, 5000L, 10000L),
         legalExceptions = *arrayOf(IOException::class, WstxException::class)
 ) {
-    personV3.hentPerson(HentPersonRequest()
+    try {
+        personV3.hentPerson(HentPersonRequest()
             .withAktoer(PersonIdent().withIdent(NorskIdent().withIdent(ident)))
-    ).person
+        ).person
+    } catch (e: Exception) {
+        log.warn("Kunne ikke hente person fra TPS ${e.message}, $loggingMeta", loggingMeta.logValues)
+        throw e
+    }
 }
 
 fun createTittleJournalpost(validationResult: ValidationResult, receivedSykmelding: ReceivedSykmelding): String {
