@@ -48,6 +48,7 @@ import no.nav.syfo.model.MottaInngaaendeForsendelse
 import no.nav.syfo.model.Organisasjon
 import no.nav.syfo.model.Pasient
 import no.nav.syfo.model.PdfPayload
+import no.nav.syfo.model.Periode
 import no.nav.syfo.model.Person
 import no.nav.syfo.model.ReceivedSykmelding
 import no.nav.syfo.model.Status
@@ -410,8 +411,17 @@ suspend fun fetchPerson(personV3: PersonV3, ident: String, loggingMeta: LoggingM
 
 fun createTittleJournalpost(validationResult: ValidationResult, receivedSykmelding: ReceivedSykmelding): String {
     return if (validationResult.status == Status.INVALID) {
-        "Avvist Sykmelding fom:${receivedSykmelding.sykmelding.perioder.first().fom} tom:${receivedSykmelding.sykmelding.perioder.last().tom}"
+        "Avvist Sykmelding ${getFomTomTekst(receivedSykmelding)}"
     } else {
-        "Sykmelding fom:${receivedSykmelding.sykmelding.perioder.first().fom} tom:${receivedSykmelding.sykmelding.perioder.last().tom}"
+        "Sykmelding ${getFomTomTekst(receivedSykmelding)}"
     }
 }
+
+private fun getFomTomTekst(receivedSykmelding: ReceivedSykmelding) =
+        "fom:${receivedSykmelding.sykmelding.perioder.sortedSykmeldingPeriodeFOMDate().first().fom} tom:${receivedSykmelding.sykmelding.perioder.sortedSykmeldingPeriodeTOMDate().last().tom}"
+
+fun List<Periode>.sortedSykmeldingPeriodeFOMDate(): List<Periode> =
+        sortedBy { it.fom }
+
+fun List<Periode>.sortedSykmeldingPeriodeTOMDate(): List<Periode> =
+        sortedBy { it.tom }
