@@ -411,15 +411,17 @@ suspend fun fetchPerson(personV3: PersonV3, ident: String, loggingMeta: LoggingM
 
 fun createTittleJournalpost(validationResult: ValidationResult, receivedSykmelding: ReceivedSykmelding): String {
     return if (validationResult.status == Status.INVALID) {
-        "Avvist Sykmelding fom:${receivedSykmelding.sykmelding.perioder.sortedSykmeldingPeriodeFOMDate().first().fom} tom:${receivedSykmelding.sykmelding.perioder.sortedSykmeldingPeriodeTOMDate().first().tom}"
+        "Avvist Sykmelding ${getFomTomTekst(receivedSykmelding)}"
     } else {
-        "Sykmelding fom:${receivedSykmelding.sykmelding.perioder.sortedSykmeldingPeriodeFOMDate().first().fom} tom:${receivedSykmelding.sykmelding.perioder.sortedSykmeldingPeriodeTOMDate().first().tom}"
+        "Sykmelding ${getFomTomTekst(receivedSykmelding)}"
     }
 }
 
+private fun getFomTomTekst(receivedSykmelding: ReceivedSykmelding) =
+        "fom:${receivedSykmelding.sykmelding.perioder.sortedSykmeldingPeriodeFOMDate().first().fom} tom:${receivedSykmelding.sykmelding.perioder.sortedSykmeldingPeriodeTOMDate().last().tom}"
+
 fun List<Periode>.sortedSykmeldingPeriodeFOMDate(): List<Periode> =
         sortedBy { it.fom }
-
 
 fun List<Periode>.sortedSykmeldingPeriodeTOMDate(): List<Periode> =
         sortedBy { it.tom }
