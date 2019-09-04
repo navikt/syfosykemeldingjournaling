@@ -76,7 +76,6 @@ import org.slf4j.LoggerFactory
 import java.io.IOException
 import java.nio.file.Paths
 import java.time.Duration
-import java.time.LocalDateTime
 import java.time.ZoneId
 import java.util.Properties
 import java.util.concurrent.Executors
@@ -328,55 +327,13 @@ fun createJournalpostPayload(
     caseId: String,
     pdf: ByteArray,
     validationResult: ValidationResult
-): MottaInngaaendeForsendelse {
-    if (receivedSykmelding.msgId == "41C2A1AD-8F2C-49FB-B044-8C5865CD11CB") {
-        log.warn("Setter dato manuelt for sykmelding fra år 0")
-        return MottaInngaaendeForsendelse(
-            forsokEndeligJF = true,
-            forsendelseInformasjon = ForsendelseInformasjon(
+) = MottaInngaaendeForsendelse(
+        forsokEndeligJF = true,
+        forsendelseInformasjon = ForsendelseInformasjon(
                 bruker = AktoerWrapper(Aktoer(person = Person(ident = receivedSykmelding.sykmelding.pasientAktoerId))),
                 avsender = AktoerWrapper(Aktoer(organisasjon = Organisasjon(
-                    orgnr = receivedSykmelding.legekontorOrgNr,
-                    navn = receivedSykmelding.legekontorOrgName
-                ))),
-                tema = "SYM",
-                kanalReferanseId = receivedSykmelding.msgId,
-                forsendelseInnsendt = LocalDateTime.now().minusDays(1).atZone(ZoneId.systemDefault()),
-                forsendelseMottatt = receivedSykmelding.mottattDato.atZone(ZoneId.systemDefault()),
-                mottaksKanal = "HELSENETTET",
-                tittel = createTittleJournalpost(validationResult, receivedSykmelding),
-                arkivSak = ArkivSak(
-                    arkivSakSystem = "FS22",
-                    arkivSakId = caseId
-                )
-            ),
-            tilleggsopplysninger = listOf(),
-            dokumentInfoHoveddokument = DokumentInfo(
-                tittel = createTittleJournalpost(validationResult, receivedSykmelding),
-                dokumentkategori = "Sykmelding",
-                dokumentVariant = listOf(
-                    DokumentVariant(
-                        arkivFilType = "PDFA",
-                        variantFormat = "ARKIV",
-                        dokument = pdf
-                    ),
-                    DokumentVariant(
-                        arkivFilType = "JSON",
-                        variantFormat = "ORIGINAL", // TODO: Skal egentlig bruke PRODUKSJON når denne blir opprettet
-                        dokument = objectMapper.writeValueAsBytes(receivedSykmelding.sykmelding)
-                    )
-                )
-            ),
-            dokumentInfoVedlegg = listOf()
-        )
-    } else {
-        return MottaInngaaendeForsendelse(
-            forsokEndeligJF = true,
-            forsendelseInformasjon = ForsendelseInformasjon(
-                bruker = AktoerWrapper(Aktoer(person = Person(ident = receivedSykmelding.sykmelding.pasientAktoerId))),
-                avsender = AktoerWrapper(Aktoer(organisasjon = Organisasjon(
-                    orgnr = receivedSykmelding.legekontorOrgNr,
-                    navn = receivedSykmelding.legekontorOrgName
+                        orgnr = receivedSykmelding.legekontorOrgNr,
+                        navn = receivedSykmelding.legekontorOrgName
                 ))),
                 tema = "SYM",
                 kanalReferanseId = receivedSykmelding.msgId,
@@ -385,31 +342,29 @@ fun createJournalpostPayload(
                 mottaksKanal = "HELSENETTET",
                 tittel = createTittleJournalpost(validationResult, receivedSykmelding),
                 arkivSak = ArkivSak(
-                    arkivSakSystem = "FS22",
-                    arkivSakId = caseId
+                        arkivSakSystem = "FS22",
+                        arkivSakId = caseId
                 )
-            ),
-            tilleggsopplysninger = listOf(),
-            dokumentInfoHoveddokument = DokumentInfo(
+        ),
+        tilleggsopplysninger = listOf(),
+        dokumentInfoHoveddokument = DokumentInfo(
                 tittel = createTittleJournalpost(validationResult, receivedSykmelding),
                 dokumentkategori = "Sykmelding",
                 dokumentVariant = listOf(
-                    DokumentVariant(
-                        arkivFilType = "PDFA",
-                        variantFormat = "ARKIV",
-                        dokument = pdf
-                    ),
-                    DokumentVariant(
-                        arkivFilType = "JSON",
-                        variantFormat = "ORIGINAL", // TODO: Skal egentlig bruke PRODUKSJON når denne blir opprettet
-                        dokument = objectMapper.writeValueAsBytes(receivedSykmelding.sykmelding)
-                    )
+                        DokumentVariant(
+                                arkivFilType = "PDFA",
+                                variantFormat = "ARKIV",
+                                dokument = pdf
+                        ),
+                        DokumentVariant(
+                                arkivFilType = "JSON",
+                                variantFormat = "ORIGINAL", // TODO: Skal egentlig bruke PRODUKSJON når denne blir opprettet
+                                dokument = objectMapper.writeValueAsBytes(receivedSykmelding.sykmelding)
+                        )
                 )
-            ),
-            dokumentInfoVedlegg = listOf()
-        )
-    }
-}
+        ),
+        dokumentInfoVedlegg = listOf()
+)
 
 fun createPdfPayload(
     receivedSykmelding: ReceivedSykmelding,
