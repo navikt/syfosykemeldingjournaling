@@ -11,11 +11,11 @@ val jacksonVersion = "2.9.8"
 val kafkaVersion = "2.1.1"
 val kafkaEmbeddedVersion = "2.0.2"
 val kluentVersion = "1.51"
-val ktorVersion = "1.2.2"
+val ktorVersion = "1.2.3"
 val logstashLogbackEncoder = "6.1"
 val logbackVersion = "1.2.3"
 val prometheusVersion = "0.6.0"
-val smCommonVersion = "2019.08.08-03-52-c78281e2409af36f3ef07df4369fa29b0ea81a46"
+val smCommonVersion = "2019.09.03-11-07-64032e3b6381665e9f9c0914cef626331399e66d"
 val spekVersion = "2.0.5"
 val syfosmoppgaveSchemasVersion = "785e8a93a3b881e89862035abe539c795c1222dd"
 val junitPlatformLauncher = "1.4.2"
@@ -44,6 +44,7 @@ repositories {
     maven(url = "https://dl.bintray.com/spekframework/spek-dev")
     maven(url = "http://packages.confluent.io/maven/")
     maven(url = "https://kotlin.bintray.com/kotlinx")
+    maven(url = "https://oss.sonatype.org/content/groups/staging/")
     mavenCentral()
     jcenter()
 }
