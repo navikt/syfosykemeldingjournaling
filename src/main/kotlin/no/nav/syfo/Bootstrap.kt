@@ -46,7 +46,6 @@ import no.nav.syfo.model.DokumentInfo
 import no.nav.syfo.model.DokumentVariant
 import no.nav.syfo.model.ForsendelseInformasjon
 import no.nav.syfo.model.MottaInngaaendeForsendelse
-import no.nav.syfo.model.Organisasjon
 import no.nav.syfo.model.Pasient
 import no.nav.syfo.model.PdfPayload
 import no.nav.syfo.model.Periode
@@ -332,13 +331,7 @@ fun createJournalpostPayload(
         forsokEndeligJF = true,
         forsendelseInformasjon = ForsendelseInformasjon(
                 bruker = AktoerWrapper(Aktoer(person = Person(ident = receivedSykmelding.sykmelding.pasientAktoerId))),
-                avsender = when (receivedSykmelding.sykmelding.behandler.fornavn.isNotBlank()) {
-                    true -> AktoerWrapper((Aktoer(person = Person(ident = receivedSykmelding.sykmelding.behandler.aktoerId))))
-                    else -> AktoerWrapper(Aktoer(organisasjon = Organisasjon(
-                            orgnr = receivedSykmelding.legekontorOrgNr,
-                            navn = receivedSykmelding.legekontorOrgName
-                    )))
-                },
+                avsender = AktoerWrapper((Aktoer(person = Person(ident = receivedSykmelding.sykmelding.behandler.aktoerId)))),
                 tema = "SYM",
                 kanalReferanseId = receivedSykmelding.msgId,
                 forsendelseInnsendt = receivedSykmelding.sykmelding.behandletTidspunkt.atZone(ZoneId.systemDefault()),
