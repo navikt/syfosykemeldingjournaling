@@ -58,7 +58,7 @@ object SortedPeriodeSpek : Spek({
             val receivedSykmelding = getReceivedSykemelding(listOf(periode))
 
             val title = createTittleJournalpost(ValidationResult(Status.OK, emptyList()), receivedSykmelding)
-            title shouldEqual "Sykmelding fom:2019-01-01 tom:2019-01-02"
+            title shouldEqual "Sykmelding 2019-01-01 - 2019-01-02"
         }
 
         it("Should get correct title for sykemelding with two Periode") {
@@ -67,7 +67,7 @@ object SortedPeriodeSpek : Spek({
             val receivedSykmelding = getReceivedSykemelding(listOf(periode2, periode))
 
             val title = createTittleJournalpost(ValidationResult(Status.OK, emptyList()), receivedSykmelding)
-            title shouldEqual "Sykmelding fom:2019-01-01 tom:2019-01-04"
+            title shouldEqual "Sykmelding 2019-01-01 - 2019-01-04"
         }
 
         it("Should get correct title for sykemelding with one gradert") {
@@ -76,7 +76,7 @@ object SortedPeriodeSpek : Spek({
 
             val receivedSykmelding = getReceivedSykemelding(listOf(periode2, periode))
             val title = createTittleJournalpost(ValidationResult(Status.OK, emptyList()), receivedSykmelding)
-            title shouldEqual "Sykmelding fom:2019-01-01 tom:2019-01-04"
+            title shouldEqual "Sykmelding 2019-01-01 - 2019-01-04"
         }
 
         it("Should get correct title for Sykemelding with several Perioder") {
@@ -86,7 +86,7 @@ object SortedPeriodeSpek : Spek({
 
             val receivedSykmelding = getReceivedSykemelding(listOf(periode2, periode3, periode))
             val title = createTittleJournalpost(ValidationResult(Status.OK, emptyList()), receivedSykmelding)
-            title shouldEqual "Sykmelding fom:2019-01-01 tom:2019-02-01"
+            title shouldEqual "Sykmelding 2019-01-01 - 2019-02-01"
         }
 
         it("Should get Avvist Sykemelding with correct fom and tom") {
@@ -96,7 +96,7 @@ object SortedPeriodeSpek : Spek({
 
             val receivedSykmelding = getReceivedSykemelding(listOf(periode2, periode3, periode))
             val title = createTittleJournalpost(ValidationResult(Status.INVALID, emptyList()), receivedSykmelding)
-            title shouldEqual "Avvist Sykmelding fom:2019-01-01 tom:2019-02-01"
+            title shouldEqual "Avvist Sykmelding 2019-01-01 - 2019-02-01"
         }
     }
 })

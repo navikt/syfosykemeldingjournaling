@@ -41,6 +41,7 @@ import no.nav.syfo.kafka.toStreamsConfig
 import no.nav.syfo.model.Aktoer
 import no.nav.syfo.model.AktoerWrapper
 import no.nav.syfo.model.ArkivSak
+import no.nav.syfo.model.Behandler
 import no.nav.syfo.model.DokumentInfo
 import no.nav.syfo.model.DokumentVariant
 import no.nav.syfo.model.ForsendelseInformasjon
@@ -331,10 +332,13 @@ fun createJournalpostPayload(
         forsokEndeligJF = true,
         forsendelseInformasjon = ForsendelseInformasjon(
                 bruker = AktoerWrapper(Aktoer(person = Person(ident = receivedSykmelding.sykmelding.pasientAktoerId))),
-                avsender = AktoerWrapper(Aktoer(organisasjon = Organisasjon(
-                        orgnr = receivedSykmelding.legekontorOrgNr,
-                        navn = receivedSykmelding.legekontorOrgName
-                ))),
+                avsender = when (receivedSykmelding.sykmelding.behandler.fornavn.isNotBlank()) {
+                    true -> AktoerWrapper((Aktoer(person = Person(ident = receivedSykmelding.sykmelding.behandler.aktoerId))))
+                    else -> AktoerWrapper(Aktoer(organisasjon = Organisasjon(
+                            orgnr = receivedSykmelding.legekontorOrgNr,
+                            navn = receivedSykmelding.legekontorOrgName
+                    )))
+                },
                 tema = "SYM",
                 kanalReferanseId = receivedSykmelding.msgId,
                 forsendelseInnsendt = receivedSykmelding.sykmelding.behandletTidspunkt.atZone(ZoneId.systemDefault()),
@@ -418,10 +422,17 @@ fun createTittleJournalpost(validationResult: ValidationResult, receivedSykmeldi
 }
 
 private fun getFomTomTekst(receivedSykmelding: ReceivedSykmelding) =
-        "fom:${receivedSykmelding.sykmelding.perioder.sortedSykmeldingPeriodeFOMDate().first().fom} tom:${receivedSykmelding.sykmelding.perioder.sortedSykmeldingPeriodeTOMDate().last().tom}"
+        "${receivedSykmelding.sykmelding.perioder.sortedSykmeldingPeriodeFOMDate().first().fom} - ${receivedSykmelding.sykmelding.perioder.sortedSykmeldingPeriodeTOMDate().last().tom}"
 
 fun List<Periode>.sortedSykmeldingPeriodeFOMDate(): List<Periode> =
         sortedBy { it.fom }
 
 fun List<Periode>.sortedSykmeldingPeriodeTOMDate(): List<Periode> =
         sortedBy { it.tom }
+
+fun Behandler.formatName(): String =
+        if (mellomnavn == null) {
+            "$etternavn $fornavn"
+        } else {
+            "$etternavn $fornavn $mellomnavn"
+        }
