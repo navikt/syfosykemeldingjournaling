@@ -341,7 +341,7 @@ fun createJournalpostPayload(
                 idType = "FNR"
         ),
         dokumenter = listOf(Dokument(
-                dokumentKategori = "Sykmelding pdf",
+                dokumentKategori = "SYM",
                 dokumentvarianter = listOf(
                         Dokumentvarianter(
                                 filnavn = "Sykmelding",
