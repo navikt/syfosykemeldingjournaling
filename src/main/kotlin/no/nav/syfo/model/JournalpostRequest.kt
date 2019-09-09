@@ -32,7 +32,7 @@ data class Bruker(
 @JsonInclude(JsonInclude.Include.NON_NULL)
 data class Dokument(
     val brevkode: String? = null,
-    val dokumentKategori: String,
+    val dokumentKategori: String? = null,
     val dokumentvarianter: List<Dokumentvarianter>,
     val tittel: String
 )
