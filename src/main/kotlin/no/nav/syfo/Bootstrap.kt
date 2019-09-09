@@ -359,8 +359,8 @@ fun createJournalpostPayload(
                 tittel = createTittleJournalpost(validationResult, receivedSykmelding)
         )),
         eksternReferanseId = receivedSykmelding.sykmelding.id,
-        journalforendeEnhet = "9999",
-        journalposttype = "INNGAAENDE",
+        journalfoerendeEnhet = "9999",
+        journalpostType = "INNGAAENDE",
         kanal = "HELSENETTET",
         sak = Sak(
                 arkivsaksnummer = caseId,
