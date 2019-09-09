@@ -1,6 +1,7 @@
 package no.nav.syfo.client
 
 import io.ktor.client.request.header
+import io.ktor.client.request.parameter
 import io.ktor.client.request.post
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
@@ -29,8 +30,8 @@ class DokAkrivClient constructor(
             httpClient.post<JournalpostResponse>(url) {
                 contentType(ContentType.Application.Json)
                 header("Authorization", "Bearer ${stsClient.oidcToken().access_token}")
-                header("forsoekFerdigstill", "true")
                 body = journalpostRequest
+                parameter("forsoekFerdigstill", true)
             }
         } catch (e: Exception) {
             log.warn("Oppretting av journalpost feilet: ${e.message}, $loggingMeta", loggingMeta.logValues)
