@@ -7,7 +7,7 @@ data class JournalpostRequest(
     val avsenderMottaker: AvsenderMottaker? = null,
     val behandlingstema: String? = null,
     var bruker: Bruker? = null,
-    val dokumenter: List<Dokument> = emptyList(),
+    val dokumenter: List<Dokument>,
     val eksternReferanseId: String? = null,
     val journalfoerendeEnhet: String? = null,
     val journalpostType: String? = null,
