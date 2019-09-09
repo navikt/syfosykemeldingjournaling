@@ -13,6 +13,9 @@ import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.features.json.JacksonSerializer
 import io.ktor.client.features.json.JsonFeature
+import io.ktor.client.features.logging.DEFAULT
+import io.ktor.client.features.logging.LogLevel
+import io.ktor.client.features.logging.Logging
 import io.ktor.routing.routing
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
@@ -102,6 +105,10 @@ val httpClient = HttpClient(CIO) {
             configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false)
             ktorObjectMapper = this
         }
+    }
+    install(Logging) {
+        logger = io.ktor.client.features.logging.Logger.Companion.DEFAULT
+        level = LogLevel.ALL
     }
 }
 
