@@ -29,7 +29,7 @@ object KafkaITSpek : Spek({
     val env = Environment(
             applicationPort = getRandomPort(),
             kafkaBootstrapServers = embeddedEnvironment.brokersURL,
-            dokmotMottaInngaaendeUrl = "TODO",
+            dokakrivUrl = "TODO",
             opprettSakUrl = "TODO",
             personV3EndpointURL = "TODO",
             securityTokenServiceURL = "TODO"

@@ -10,26 +10,27 @@ import no.nav.syfo.LoggingMeta
 import no.nav.syfo.helpers.retry
 import no.nav.syfo.httpClient
 import no.nav.syfo.log
-import no.nav.syfo.model.MottaInngaaendeForsendelse
-import no.nav.syfo.model.MottaInngaandeForsendelseResultat
+import no.nav.syfo.model.JournalpostRequest
+import no.nav.syfo.model.JournalpostResponse
 import kotlin.coroutines.CoroutineContext
 
 @KtorExperimentalAPI
-class DokmotClient constructor(
+class DokAkrivClient constructor(
     private val url: String,
     private val stsClient: StsOidcClient,
     override val coroutineContext: CoroutineContext
 ) : CoroutineScope {
     suspend fun createJournalpost(
-        mottaInngaaendeForsendelse: MottaInngaaendeForsendelse,
+        journalpostRequest: JournalpostRequest,
         loggingMeta: LoggingMeta
-    ): MottaInngaandeForsendelseResultat = retry(callName = "dokmotinngaaende",
-            retryIntervals = arrayOf(500L, 1000L, 3000L, 5000L, 10000L, 20000L)) {
+    ): JournalpostResponse = retry(callName = "dokakriv",
+            retryIntervals = arrayOf(500L, 1000L, 3000L, 5000L)) {
         try {
-            httpClient.post<MottaInngaandeForsendelseResultat>(url) {
+            httpClient.post<JournalpostResponse>(url) {
                 contentType(ContentType.Application.Json)
                 header("Authorization", "Bearer ${stsClient.oidcToken().access_token}")
-                body = mottaInngaaendeForsendelse
+                header("forsoekFerdigstill", "true")
+                body = journalpostRequest
             }
         } catch (e: Exception) {
             log.warn("Oppretting av journalpost feilet: ${e.message}, $loggingMeta", loggingMeta.logValues)
