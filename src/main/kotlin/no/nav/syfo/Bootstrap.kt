@@ -364,7 +364,7 @@ fun createJournalpostPayload(
         kanal = "HELSENETTET",
         sak = Sak(
                 arkivsaksnummer = caseId,
-                arkivsaksystem = "FS22"
+                arkivsaksystem = "GSAK"
         ),
         tema = "SYM",
         tittel = createTittleJournalpost(validationResult, receivedSykmelding)
