@@ -20,7 +20,9 @@ data class JournalpostRequest(
 @JsonInclude(JsonInclude.Include.NON_NULL)
 data class AvsenderMottaker(
     val id: String? = null,
-    val idType: String? = null
+    val idType: String? = null,
+    val land: String? = null,
+    val navn: String
 )
 
 @JsonInclude(JsonInclude.Include.NON_NULL)

@@ -334,7 +334,9 @@ fun createJournalpostPayload(
 ) = JournalpostRequest(
         avsenderMottaker = AvsenderMottaker(
                 id = receivedSykmelding.sykmelding.behandler.fnr,
-                idType = "FNR"
+                idType = "FNR",
+                land = "Norge",
+                navn = receivedSykmelding.sykmelding.behandler.formatName()
         ),
         bruker = Bruker(
                 id = receivedSykmelding.personNrPasient,
