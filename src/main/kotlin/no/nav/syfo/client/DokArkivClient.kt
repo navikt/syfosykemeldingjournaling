@@ -25,7 +25,7 @@ class DokArkivClient constructor(
         journalpostRequest: JournalpostRequest,
         loggingMeta: LoggingMeta
     ): JournalpostResponse = retry(callName = "dokarkiv",
-            retryIntervals = arrayOf(500L, 1000L, 3000L, 5000L)) {
+            retryIntervals = arrayOf(500L, 1000L, 3000L, 5000L, 10000L)) {
         try {
             httpClient.post<JournalpostResponse>(url) {
                 contentType(ContentType.Application.Json)
