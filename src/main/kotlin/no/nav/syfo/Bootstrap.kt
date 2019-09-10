@@ -28,7 +28,7 @@ import kotlinx.coroutines.runBlocking
 import net.logstash.logback.argument.StructuredArgument
 import net.logstash.logback.argument.StructuredArguments.keyValue
 import no.nav.syfo.api.registerNaisApi
-import no.nav.syfo.client.DokAkrivClient
+import no.nav.syfo.client.DokArkivClient
 import no.nav.syfo.client.PdfgenClient
 import no.nav.syfo.client.SakClient
 import no.nav.syfo.client.StsOidcClient
@@ -120,7 +120,7 @@ fun main() = runBlocking(coroutineContext) {
 
     val stsClient = StsOidcClient(credentials.serviceuserUsername, credentials.serviceuserPassword)
     val sakClient = SakClient(env.opprettSakUrl, stsClient)
-    val dokArkivClient = DokAkrivClient(env.dokakrivUrl, stsClient, coroutineContext)
+    val dokArkivClient = DokArkivClient(env.dokArkivUrl, stsClient, coroutineContext)
     val pdfgenClient = PdfgenClient(env.pdfgen, coroutineContext)
 
     val personV3 = createPort<PersonV3>(env.personV3EndpointURL) {
@@ -204,7 +204,7 @@ suspend fun CoroutineScope.launchListeners(
     consumerProperties: Properties,
     producer: KafkaProducer<String, RegisterJournal>,
     sakClient: SakClient,
-    dokAkrivClient: DokAkrivClient,
+    dokArkivClient: DokArkivClient,
     pdfgenClient: PdfgenClient,
     personV3: PersonV3
 ) {
@@ -218,7 +218,7 @@ suspend fun CoroutineScope.launchListeners(
                         producer,
                         applicationState,
                         sakClient,
-                        dokAkrivClient,
+                        dokArkivClient,
                         pdfgenClient,
                         personV3)
             }
@@ -235,7 +235,7 @@ suspend fun blockingApplicationLogic(
     producer: KafkaProducer<String, RegisterJournal>,
     applicationState: ApplicationState,
     sakClient: SakClient,
-    dokAkrivClient: DokAkrivClient,
+    dokArkivClient: DokArkivClient,
     pdfgenClient: PdfgenClient,
     personV3: PersonV3
 ) {
@@ -247,7 +247,7 @@ suspend fun blockingApplicationLogic(
                     objectMapper.readValue(behandlingsUtfallReceivedSykmelding.receivedSykmelding)
             val validationResult: ValidationResult =
                     objectMapper.readValue(behandlingsUtfallReceivedSykmelding.behandlingsUtfall)
-            onJournalRequest(env, receivedSykmelding, producer, sakClient, dokAkrivClient, pdfgenClient, personV3, validationResult)
+            onJournalRequest(env, receivedSykmelding, producer, sakClient, dokArkivClient, pdfgenClient, personV3, validationResult)
         }
 
         delay(100)
@@ -260,7 +260,7 @@ suspend fun onJournalRequest(
     receivedSykmelding: ReceivedSykmelding,
     producer: KafkaProducer<String, RegisterJournal>,
     sakClient: SakClient,
-    dokAkrivClient: DokAkrivClient,
+    dokArkivClient: DokArkivClient,
     pdfgenClient: PdfgenClient,
     personV3: PersonV3,
     validationResult: ValidationResult
@@ -286,7 +286,7 @@ suspend fun onJournalRequest(
         log.info("PDF generert $loggingMeta", *loggingMeta.logValues)
 
         val journalpostPayload = createJournalpostPayload(receivedSykmelding, sak.id.toString(), pdf, validationResult)
-        val journalpost = dokAkrivClient.createJournalpost(journalpostPayload, loggingMeta)
+        val journalpost = dokArkivClient.createJournalpost(journalpostPayload, loggingMeta)
 
         val registerJournal = RegisterJournal().apply {
             journalpostKilde = "AS36"

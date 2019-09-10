@@ -16,7 +16,7 @@ import no.nav.syfo.model.JournalpostResponse
 import kotlin.coroutines.CoroutineContext
 
 @KtorExperimentalAPI
-class DokAkrivClient constructor(
+class DokArkivClient constructor(
     private val url: String,
     private val stsClient: StsOidcClient,
     override val coroutineContext: CoroutineContext
@@ -24,7 +24,7 @@ class DokAkrivClient constructor(
     suspend fun createJournalpost(
         journalpostRequest: JournalpostRequest,
         loggingMeta: LoggingMeta
-    ): JournalpostResponse = retry(callName = "dokakriv",
+    ): JournalpostResponse = retry(callName = "dokarkiv",
             retryIntervals = arrayOf(500L, 1000L, 3000L, 5000L)) {
         try {
             httpClient.post<JournalpostResponse>(url) {
