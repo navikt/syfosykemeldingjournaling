@@ -120,7 +120,7 @@ fun main() = runBlocking(coroutineContext) {
 
     val stsClient = StsOidcClient(credentials.serviceuserUsername, credentials.serviceuserPassword)
     val sakClient = SakClient(env.opprettSakUrl, stsClient)
-    val dokmotClient = DokAkrivClient(env.dokakrivUrl, stsClient, coroutineContext)
+    val dokArkivClient = DokAkrivClient(env.dokakrivUrl, stsClient, coroutineContext)
     val pdfgenClient = PdfgenClient(env.pdfgen, coroutineContext)
 
     val personV3 = createPort<PersonV3>(env.personV3EndpointURL) {
@@ -138,7 +138,7 @@ fun main() = runBlocking(coroutineContext) {
 
     kafkaStream.start()
 
-    launchListeners(env, applicationState, consumerConfig, producer, sakClient, dokmotClient, pdfgenClient, personV3)
+    launchListeners(env, applicationState, consumerConfig, producer, sakClient, dokArkivClient, pdfgenClient, personV3)
 
     Runtime.getRuntime().addShutdownHook(Thread {
         kafkaStream.close()
