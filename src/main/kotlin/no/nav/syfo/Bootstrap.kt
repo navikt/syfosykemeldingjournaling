@@ -28,7 +28,7 @@ import kotlinx.coroutines.runBlocking
 import net.logstash.logback.argument.StructuredArgument
 import net.logstash.logback.argument.StructuredArguments.keyValue
 import no.nav.syfo.api.registerNaisApi
-import no.nav.syfo.client.DokmotClient
+import no.nav.syfo.client.DokArkivClient
 import no.nav.syfo.client.PdfgenClient
 import no.nav.syfo.client.SakClient
 import no.nav.syfo.client.StsOidcClient
@@ -38,19 +38,17 @@ import no.nav.syfo.kafka.loadBaseConfig
 import no.nav.syfo.kafka.toConsumerConfig
 import no.nav.syfo.kafka.toProducerConfig
 import no.nav.syfo.kafka.toStreamsConfig
-import no.nav.syfo.model.Aktoer
-import no.nav.syfo.model.AktoerWrapper
-import no.nav.syfo.model.ArkivSak
+import no.nav.syfo.model.AvsenderMottaker
 import no.nav.syfo.model.Behandler
-import no.nav.syfo.model.DokumentInfo
-import no.nav.syfo.model.DokumentVariant
-import no.nav.syfo.model.ForsendelseInformasjon
-import no.nav.syfo.model.MottaInngaaendeForsendelse
+import no.nav.syfo.model.Bruker
+import no.nav.syfo.model.Dokument
+import no.nav.syfo.model.Dokumentvarianter
+import no.nav.syfo.model.JournalpostRequest
 import no.nav.syfo.model.Pasient
 import no.nav.syfo.model.PdfPayload
 import no.nav.syfo.model.Periode
-import no.nav.syfo.model.Person
 import no.nav.syfo.model.ReceivedSykmelding
+import no.nav.syfo.model.Sak
 import no.nav.syfo.model.Status
 import no.nav.syfo.model.ValidationResult
 import no.nav.syfo.model.toPDFFormat
@@ -76,7 +74,6 @@ import org.slf4j.LoggerFactory
 import java.io.IOException
 import java.nio.file.Paths
 import java.time.Duration
-import java.time.ZoneId
 import java.util.Properties
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
@@ -123,7 +120,7 @@ fun main() = runBlocking(coroutineContext) {
 
     val stsClient = StsOidcClient(credentials.serviceuserUsername, credentials.serviceuserPassword)
     val sakClient = SakClient(env.opprettSakUrl, stsClient)
-    val dokmotClient = DokmotClient(env.dokmotMottaInngaaendeUrl, stsClient, coroutineContext)
+    val dokArkivClient = DokArkivClient(env.dokArkivUrl, stsClient, coroutineContext)
     val pdfgenClient = PdfgenClient(env.pdfgen, coroutineContext)
 
     val personV3 = createPort<PersonV3>(env.personV3EndpointURL) {
@@ -141,7 +138,7 @@ fun main() = runBlocking(coroutineContext) {
 
     kafkaStream.start()
 
-    launchListeners(env, applicationState, consumerConfig, producer, sakClient, dokmotClient, pdfgenClient, personV3)
+    launchListeners(env, applicationState, consumerConfig, producer, sakClient, dokArkivClient, pdfgenClient, personV3)
 
     Runtime.getRuntime().addShutdownHook(Thread {
         kafkaStream.close()
@@ -207,7 +204,7 @@ suspend fun CoroutineScope.launchListeners(
     consumerProperties: Properties,
     producer: KafkaProducer<String, RegisterJournal>,
     sakClient: SakClient,
-    dokmotClient: DokmotClient,
+    dokArkivClient: DokArkivClient,
     pdfgenClient: PdfgenClient,
     personV3: PersonV3
 ) {
@@ -221,7 +218,7 @@ suspend fun CoroutineScope.launchListeners(
                         producer,
                         applicationState,
                         sakClient,
-                        dokmotClient,
+                        dokArkivClient,
                         pdfgenClient,
                         personV3)
             }
@@ -238,7 +235,7 @@ suspend fun blockingApplicationLogic(
     producer: KafkaProducer<String, RegisterJournal>,
     applicationState: ApplicationState,
     sakClient: SakClient,
-    dokmotClient: DokmotClient,
+    dokArkivClient: DokArkivClient,
     pdfgenClient: PdfgenClient,
     personV3: PersonV3
 ) {
@@ -250,7 +247,7 @@ suspend fun blockingApplicationLogic(
                     objectMapper.readValue(behandlingsUtfallReceivedSykmelding.receivedSykmelding)
             val validationResult: ValidationResult =
                     objectMapper.readValue(behandlingsUtfallReceivedSykmelding.behandlingsUtfall)
-            onJournalRequest(env, receivedSykmelding, producer, sakClient, dokmotClient, pdfgenClient, personV3, validationResult)
+            onJournalRequest(env, receivedSykmelding, producer, sakClient, dokArkivClient, pdfgenClient, personV3, validationResult)
         }
 
         delay(100)
@@ -263,7 +260,7 @@ suspend fun onJournalRequest(
     receivedSykmelding: ReceivedSykmelding,
     producer: KafkaProducer<String, RegisterJournal>,
     sakClient: SakClient,
-    dokmotClient: DokmotClient,
+    dokArkivClient: DokArkivClient,
     pdfgenClient: PdfgenClient,
     personV3: PersonV3,
     validationResult: ValidationResult
@@ -289,7 +286,7 @@ suspend fun onJournalRequest(
         log.info("PDF generert $loggingMeta", *loggingMeta.logValues)
 
         val journalpostPayload = createJournalpostPayload(receivedSykmelding, sak.id.toString(), pdf, validationResult)
-        val journalpost = dokmotClient.createJournalpost(journalpostPayload, loggingMeta)
+        val journalpost = dokArkivClient.createJournalpost(journalpostPayload, loggingMeta)
 
         val registerJournal = RegisterJournal().apply {
             journalpostKilde = "AS36"
@@ -327,40 +324,44 @@ fun createJournalpostPayload(
     caseId: String,
     pdf: ByteArray,
     validationResult: ValidationResult
-) = MottaInngaaendeForsendelse(
-        forsokEndeligJF = true,
-        forsendelseInformasjon = ForsendelseInformasjon(
-                bruker = AktoerWrapper(Aktoer(person = Person(ident = receivedSykmelding.sykmelding.pasientAktoerId))),
-                avsender = AktoerWrapper((Aktoer(person = Person(ident = receivedSykmelding.sykmelding.behandler.aktoerId)))),
-                tema = "SYM",
-                kanalReferanseId = receivedSykmelding.msgId,
-                forsendelseInnsendt = receivedSykmelding.sykmelding.behandletTidspunkt.atZone(ZoneId.systemDefault()),
-                forsendelseMottatt = receivedSykmelding.mottattDato.atZone(ZoneId.systemDefault()),
-                mottaksKanal = "HELSENETTET",
-                tittel = createTittleJournalpost(validationResult, receivedSykmelding),
-                arkivSak = ArkivSak(
-                        arkivSakSystem = "FS22",
-                        arkivSakId = caseId
-                )
+) = JournalpostRequest(
+        avsenderMottaker = AvsenderMottaker(
+                id = receivedSykmelding.sykmelding.behandler.fnr,
+                idType = "FNR",
+                land = "Norge",
+                navn = receivedSykmelding.sykmelding.behandler.formatName()
         ),
-        tilleggsopplysninger = listOf(),
-        dokumentInfoHoveddokument = DokumentInfo(
-                tittel = createTittleJournalpost(validationResult, receivedSykmelding),
-                dokumentkategori = "Sykmelding",
-                dokumentVariant = listOf(
-                        DokumentVariant(
-                                arkivFilType = "PDFA",
-                                variantFormat = "ARKIV",
-                                dokument = pdf
+        bruker = Bruker(
+                id = receivedSykmelding.personNrPasient,
+                idType = "FNR"
+        ),
+        dokumenter = listOf(Dokument(
+                dokumentvarianter = listOf(
+                        Dokumentvarianter(
+                                filnavn = "Sykmelding",
+                                filtype = "PDFA",
+                                variantformat = "ARKIV",
+                                fysiskDokument = pdf
                         ),
-                        DokumentVariant(
-                                arkivFilType = "JSON",
-                                variantFormat = "ORIGINAL", // TODO: Skal egentlig bruke PRODUKSJON når denne blir opprettet
-                                dokument = objectMapper.writeValueAsBytes(receivedSykmelding.sykmelding)
+                        Dokumentvarianter(
+                                filnavn = "Sykmelding json",
+                                filtype = "JSON",
+                                variantformat = "ORIGINAL",
+                                fysiskDokument = objectMapper.writeValueAsBytes(receivedSykmelding.sykmelding)
                         )
-                )
+                ),
+                tittel = createTittleJournalpost(validationResult, receivedSykmelding)
+        )),
+        eksternReferanseId = receivedSykmelding.sykmelding.id,
+        journalfoerendeEnhet = "9999",
+        journalpostType = "INNGAAENDE",
+        kanal = "HELSENETTET",
+        sak = Sak(
+                arkivsaksnummer = caseId,
+                arkivsaksystem = "GSAK"
         ),
-        dokumentInfoVedlegg = listOf()
+        tema = "SYM",
+        tittel = createTittleJournalpost(validationResult, receivedSykmelding)
 )
 
 fun createPdfPayload(
