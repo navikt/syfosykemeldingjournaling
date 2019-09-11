@@ -27,6 +27,7 @@ class DokArkivClient constructor(
     ): JournalpostResponse = retry(callName = "dokarkiv",
             retryIntervals = arrayOf(500L, 1000L, 3000L, 5000L, 10000L)) {
         try {
+            log.info("kall til dokakriv med Nav-Callid: ${journalpostRequest.eksternReferanseId}")
             httpClient.post<JournalpostResponse>(url) {
                 contentType(ContentType.Application.Json)
                 header("Authorization", "Bearer ${stsClient.oidcToken().access_token}")
