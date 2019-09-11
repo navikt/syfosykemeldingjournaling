@@ -7,6 +7,7 @@ import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import io.ktor.util.KtorExperimentalAPI
 import kotlinx.coroutines.CoroutineScope
+import net.logstash.logback.argument.StructuredArguments
 import no.nav.syfo.LoggingMeta
 import no.nav.syfo.helpers.retry
 import no.nav.syfo.httpClient
@@ -27,9 +28,13 @@ class DokArkivClient constructor(
     ): JournalpostResponse = retry(callName = "dokarkiv",
             retryIntervals = arrayOf(500L, 1000L, 3000L, 5000L, 10000L)) {
         try {
+            log.info("Kall til dokakriv {} $loggingMeta",
+                    StructuredArguments.keyValue("Nav-Callid", journalpostRequest.eksternReferanseId),
+                    *loggingMeta.logValues)
             httpClient.post<JournalpostResponse>(url) {
                 contentType(ContentType.Application.Json)
                 header("Authorization", "Bearer ${stsClient.oidcToken().access_token}")
+                header("Nav-Callid", journalpostRequest.eksternReferanseId)
                 body = journalpostRequest
                 parameter("forsoekFerdigstill", true)
             }
