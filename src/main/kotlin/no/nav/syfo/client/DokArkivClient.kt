@@ -30,6 +30,7 @@ class DokArkivClient constructor(
             httpClient.post<JournalpostResponse>(url) {
                 contentType(ContentType.Application.Json)
                 header("Authorization", "Bearer ${stsClient.oidcToken().access_token}")
+                header("Nav-Callid", journalpostRequest.eksternReferanseId)
                 body = journalpostRequest
                 parameter("forsoekFerdigstill", true)
             }
