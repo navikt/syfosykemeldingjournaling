@@ -3,7 +3,7 @@ import com.github.jengelman.gradle.plugins.shadow.transformers.ServiceFileTransf
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 group = "no.nav.syfo"
-version = "1.0.8-SNAPSHOT"
+version = "1.0.9"
 
 val confluentVersion = "5.0.0"
 val coroutinesVersion = "1.2.2"
@@ -40,13 +40,13 @@ plugins {
 }
 
 repositories {
+    mavenCentral()
+    jcenter()
     maven(url = "https://dl.bintray.com/kotlin/ktor")
     maven(url = "https://dl.bintray.com/spekframework/spek-dev")
     maven(url = "http://packages.confluent.io/maven/")
     maven(url = "https://kotlin.bintray.com/kotlinx")
     maven(url = "https://oss.sonatype.org/content/groups/staging/")
-    mavenCentral()
-    jcenter()
 }
 
 dependencies {
