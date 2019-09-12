@@ -268,7 +268,7 @@ suspend fun onJournalRequest(
         sykmeldingId = receivedSykmelding.sykmelding.id
 )
     wrapExceptions(loggingMeta) {
-        log.info("Mottok en sykmelding, prover a lagre i Joark {}", fields(loggingMeta))
+        log.info("Mottok en sykmelding, prover aa lagre i Joark {}", fields(loggingMeta))
 
         val patient = fetchPerson(personV3, receivedSykmelding.personNrPasient, loggingMeta)
 
@@ -381,7 +381,7 @@ suspend fun fetchPerson(personV3: PersonV3, ident: String, loggingMeta: LoggingM
             .withAktoer(PersonIdent().withIdent(NorskIdent().withIdent(ident)))
         ).person
     } catch (e: Exception) {
-        log.warn("Kunne ikke hente person fra TPS:  ${e.message}, {}", fields(loggingMeta))
+        log.warn("Kunne ikke hente person fra TPS: ${e.message}, {}", fields(loggingMeta))
         throw e
     }
 }
@@ -395,7 +395,8 @@ fun createTittleJournalpost(validationResult: ValidationResult, receivedSykmeldi
 }
 
 private fun getFomTomTekst(receivedSykmelding: ReceivedSykmelding) =
-        "${receivedSykmelding.sykmelding.perioder.sortedSykmeldingPeriodeFOMDate().first().fom} - ${receivedSykmelding.sykmelding.perioder.sortedSykmeldingPeriodeTOMDate().last().tom}"
+        "${receivedSykmelding.sykmelding.perioder.sortedSykmeldingPeriodeFOMDate().first().fom} -" +
+                " ${receivedSykmelding.sykmelding.perioder.sortedSykmeldingPeriodeTOMDate().last().tom}"
 
 fun List<Periode>.sortedSykmeldingPeriodeFOMDate(): List<Periode> =
         sortedBy { it.fom }
