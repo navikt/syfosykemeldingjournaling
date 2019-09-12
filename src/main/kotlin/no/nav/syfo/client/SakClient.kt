@@ -8,7 +8,7 @@ import io.ktor.client.request.post
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import io.ktor.util.KtorExperimentalAPI
-import net.logstash.logback.argument.StructuredArguments.keyValue
+import net.logstash.logback.argument.StructuredArguments.fields
 import no.nav.syfo.LoggingMeta
 import no.nav.syfo.helpers.retry
 import no.nav.syfo.log
@@ -64,11 +64,11 @@ class SakClient constructor(
         return if (findSakResponse.isNullOrEmpty()) {
             createSak(pasientAktoerId, msgId).also {
                 CASES_CREATED.inc()
-                log.info("Opprettet en sak, {} $loggingMeta", keyValue("saksId", it.id), *loggingMeta.logValues)
+                log.info("Opprettet en sak med sakid: {}, {}", it.id, fields(loggingMeta))
             }
         } else {
             findSakResponse.sortedBy { it.opprettetTidspunkt }.last().also {
-                log.info("Fant en sak, {} $loggingMeta", keyValue("saksId", it.id), *loggingMeta.logValues)
+                log.info("Fant en sak med sakid: {}, {}", it.id, fields(loggingMeta))
             }
         }
     }

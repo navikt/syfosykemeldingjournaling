@@ -25,8 +25,7 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import net.logstash.logback.argument.StructuredArgument
-import net.logstash.logback.argument.StructuredArguments.keyValue
+import net.logstash.logback.argument.StructuredArguments.fields
 import no.nav.syfo.api.registerNaisApi
 import no.nav.syfo.client.DokArkivClient
 import no.nav.syfo.client.PdfgenClient
@@ -188,9 +187,7 @@ fun CoroutineScope.createListener(applicationState: ApplicationState, action: su
             try {
                 action()
             } catch (e: TrackableException) {
-                log.error("En uhaandtert feil oppstod, applikasjonen restartes. ${e.loggingMeta}",
-                        *e.loggingMeta.logValues,
-                        e.cause)
+                log.error("En uhåndtert feil oppstod, applikasjonen restarter {}", fields(e.loggingMeta), e.cause)
             } finally {
                 applicationState.running = false
             }
@@ -264,15 +261,14 @@ suspend fun onJournalRequest(
     personV3: PersonV3,
     validationResult: ValidationResult
 ) = coroutineScope {
-    val logValues = arrayOf(
-            keyValue("msgId", receivedSykmelding.msgId),
-            keyValue("mottakId", receivedSykmelding.navLogId),
-            keyValue("sykmeldingId", receivedSykmelding.sykmelding.id),
-            keyValue("orgNr", receivedSykmelding.legekontorOrgNr)
-    )
-    val loggingMeta = LoggingMeta(logValues)
+    val loggingMeta = LoggingMeta(
+        mottakId = receivedSykmelding.navLogId,
+        orgNr = receivedSykmelding.legekontorOrgNr,
+        msgId = receivedSykmelding.msgId,
+        sykmeldingId = receivedSykmelding.sykmelding.id
+)
     wrapExceptions(loggingMeta) {
-        log.info("Mottok en sykmelding, prover a lagre i Joark $loggingMeta", loggingMeta.logValues)
+        log.info("Mottok en sykmelding, prover a lagre i Joark {}", fields(loggingMeta))
 
         val patient = fetchPerson(personV3, receivedSykmelding.personNrPasient, loggingMeta)
 
@@ -282,7 +278,7 @@ suspend fun onJournalRequest(
                 loggingMeta)
 
         val pdf = pdfgenClient.createPdf(pdfPayload)
-        log.info("PDF generert $loggingMeta", *loggingMeta.logValues)
+        log.info("PDF generert {}", fields(loggingMeta))
 
         val journalpostPayload = createJournalpostPayload(receivedSykmelding, sak.id.toString(), pdf, validationResult)
         val journalpost = dokArkivClient.createJournalpost(journalpostPayload, loggingMeta)
@@ -296,28 +292,11 @@ suspend fun onJournalRequest(
         producer.send(ProducerRecord(env.journalCreatedTopic, receivedSykmelding.sykmelding.id, registerJournal))
 
         MESSAGE_PERSISTED_IN_JOARK.inc()
-        log.info("Melding lagret i Joark {} $loggingMeta",
-                keyValue("journalpostId", journalpost.journalpostId),
-                *loggingMeta.logValues)
+        log.info("Melding lagret i Joark med journalpostId {}, {}",
+                journalpost.journalpostId,
+                fields(loggingMeta))
     }
 }
-
-suspend fun <T : Any, O> T.wrapExceptions(loggingMeta: LoggingMeta, block: suspend T.() -> O): O {
-    try {
-        return block()
-    } catch (e: Exception) {
-        throw TrackableException(e, loggingMeta)
-    }
-}
-
-data class LoggingMeta(
-    val logValues: Array<StructuredArgument>
-) {
-    private val logFormat: String = logValues.joinToString(prefix = "(", postfix = ")", separator = ", ") { "{}" }
-    override fun toString() = logFormat
-}
-
-class TrackableException(override val cause: Throwable, val loggingMeta: LoggingMeta) : RuntimeException()
 
 fun createJournalpostPayload(
     receivedSykmelding: ReceivedSykmelding,
@@ -402,7 +381,7 @@ suspend fun fetchPerson(personV3: PersonV3, ident: String, loggingMeta: LoggingM
             .withAktoer(PersonIdent().withIdent(NorskIdent().withIdent(ident)))
         ).person
     } catch (e: Exception) {
-        log.warn("Kunne ikke hente person fra TPS ${e.message}, $loggingMeta", loggingMeta.logValues)
+        log.warn("Kunne ikke hente person fra TPS:  ${e.message}, {}", fields(loggingMeta))
         throw e
     }
 }

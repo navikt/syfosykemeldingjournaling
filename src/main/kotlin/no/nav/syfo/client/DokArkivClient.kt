@@ -7,7 +7,7 @@ import io.ktor.client.request.post
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import io.ktor.util.KtorExperimentalAPI
-import net.logstash.logback.argument.StructuredArguments
+import net.logstash.logback.argument.StructuredArguments.fields
 import no.nav.syfo.LoggingMeta
 import no.nav.syfo.helpers.retry
 import no.nav.syfo.log
@@ -26,9 +26,8 @@ class DokArkivClient(
     ): JournalpostResponse = retry(callName = "dokarkiv",
             retryIntervals = arrayOf(500L, 1000L, 3000L, 5000L, 10000L)) {
         try {
-            log.info("Kall til dokakriv {} $loggingMeta",
-                    StructuredArguments.keyValue("Nav-Callid", journalpostRequest.eksternReferanseId),
-                    *loggingMeta.logValues)
+            log.info("Kall til dokakriv Nav_Calldi {}, {}", journalpostRequest.eksternReferanseId,
+                    fields(loggingMeta))
             httpClient.post<JournalpostResponse>(url) {
                 contentType(ContentType.Application.Json)
                 header("Authorization", "Bearer ${stsClient.oidcToken().access_token}")
@@ -37,7 +36,7 @@ class DokArkivClient(
                 parameter("forsoekFerdigstill", true)
             }
         } catch (e: Exception) {
-            log.warn("Oppretting av journalpost feilet: ${e.message}, $loggingMeta", loggingMeta.logValues)
+            log.warn("Oppretting av journalpost feilet: ${e.message}, {}", fields(loggingMeta))
             throw e
         }
     }
