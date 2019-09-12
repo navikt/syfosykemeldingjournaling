@@ -1,13 +1,6 @@
 package no.nav.syfo.client
 
-import com.fasterxml.jackson.databind.DeserializationFeature
-import com.fasterxml.jackson.databind.SerializationFeature
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
-import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import io.ktor.client.HttpClient
-import io.ktor.client.engine.cio.CIO
-import io.ktor.client.features.json.JacksonSerializer
-import io.ktor.client.features.json.JsonFeature
 import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.request.parameter
@@ -19,27 +12,21 @@ import net.logstash.logback.argument.StructuredArguments.keyValue
 import no.nav.syfo.LoggingMeta
 import no.nav.syfo.helpers.retry
 import no.nav.syfo.log
+import no.nav.syfo.metrics.CASES_CREATED
 import no.nav.syfo.model.OpprettSak
 import no.nav.syfo.model.SakResponse
 
 @KtorExperimentalAPI
-class SakClient constructor(val url: String, val oidcClient: StsOidcClient) {
-    private val client: HttpClient = HttpClient(CIO) {
-        install(JsonFeature) {
-            serializer = JacksonSerializer {
-                registerKotlinModule()
-                registerModule(JavaTimeModule())
-                configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false)
-                configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
-            }
-        }
-    }
-
+class SakClient constructor(
+    val url: String,
+    val oidcClient: StsOidcClient,
+    val httpClient: HttpClient
+) {
     private suspend fun createSak(
         pasientAktoerId: String,
         msgId: String
     ): SakResponse = retry("sak_opprett") {
-        client.post<SakResponse>(url) {
+        httpClient.post<SakResponse>(url) {
             contentType(ContentType.Application.Json)
             header("X-Correlation-ID", msgId)
             header("Authorization", "Bearer ${oidcClient.oidcToken().access_token}")
@@ -57,7 +44,7 @@ class SakClient constructor(val url: String, val oidcClient: StsOidcClient) {
         pasientAktoerId: String,
         msgId: String
     ): List<SakResponse>? = retry("finn_sak") {
-        client.get<List<SakResponse>?>(url) {
+        httpClient.get<List<SakResponse>?>(url) {
             contentType(ContentType.Application.Json)
             header("X-Correlation-ID", msgId)
             header("Authorization", "Bearer ${oidcClient.oidcToken().access_token}")
@@ -76,6 +63,7 @@ class SakClient constructor(val url: String, val oidcClient: StsOidcClient) {
 
         return if (findSakResponse.isNullOrEmpty()) {
             createSak(pasientAktoerId, msgId).also {
+                CASES_CREATED.inc()
                 log.info("Opprettet en sak, {} $loggingMeta", keyValue("saksId", it.id), *loggingMeta.logValues)
             }
         } else {

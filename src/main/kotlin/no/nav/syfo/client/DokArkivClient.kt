@@ -1,27 +1,25 @@
 package no.nav.syfo.client
 
+import io.ktor.client.HttpClient
 import io.ktor.client.request.header
 import io.ktor.client.request.parameter
 import io.ktor.client.request.post
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import io.ktor.util.KtorExperimentalAPI
-import kotlinx.coroutines.CoroutineScope
 import net.logstash.logback.argument.StructuredArguments
 import no.nav.syfo.LoggingMeta
 import no.nav.syfo.helpers.retry
-import no.nav.syfo.httpClient
 import no.nav.syfo.log
 import no.nav.syfo.model.JournalpostRequest
 import no.nav.syfo.model.JournalpostResponse
-import kotlin.coroutines.CoroutineContext
 
 @KtorExperimentalAPI
-class DokArkivClient constructor(
+class DokArkivClient(
     private val url: String,
     private val stsClient: StsOidcClient,
-    override val coroutineContext: CoroutineContext
-) : CoroutineScope {
+    private val httpClient: HttpClient
+) {
     suspend fun createJournalpost(
         journalpostRequest: JournalpostRequest,
         loggingMeta: LoggingMeta

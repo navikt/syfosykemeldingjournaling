@@ -10,7 +10,7 @@ import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import io.confluent.kafka.serializers.KafkaAvroSerializer
 import io.ktor.application.Application
 import io.ktor.client.HttpClient
-import io.ktor.client.engine.cio.CIO
+import io.ktor.client.engine.apache.Apache
 import io.ktor.client.features.json.JacksonSerializer
 import io.ktor.client.features.json.JsonFeature
 import io.ktor.routing.routing
@@ -38,6 +38,7 @@ import no.nav.syfo.kafka.loadBaseConfig
 import no.nav.syfo.kafka.toConsumerConfig
 import no.nav.syfo.kafka.toProducerConfig
 import no.nav.syfo.kafka.toStreamsConfig
+import no.nav.syfo.metrics.MESSAGE_PERSISTED_IN_JOARK
 import no.nav.syfo.model.AvsenderMottaker
 import no.nav.syfo.model.Behandler
 import no.nav.syfo.model.Bruker
@@ -89,21 +90,8 @@ val objectMapper: ObjectMapper = ObjectMapper().apply {
 }
 
 val log: Logger = LoggerFactory.getLogger("smsak")
-lateinit var ktorObjectMapper: ObjectMapper
 
 data class ApplicationState(var running: Boolean = true, var initialized: Boolean = false)
-
-@KtorExperimentalAPI
-val httpClient = HttpClient(CIO) {
-    install(JsonFeature) {
-        serializer = JacksonSerializer {
-            registerKotlinModule()
-            registerModule(JavaTimeModule())
-            configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false)
-            ktorObjectMapper = this
-        }
-    }
-}
 
 val coroutineContext = Executors.newFixedThreadPool(2).asCoroutineDispatcher()
 
@@ -118,10 +106,21 @@ fun main() = runBlocking(coroutineContext) {
         initRouting(applicationState)
     }.start(wait = false)
 
+    val httpClient = HttpClient(Apache) {
+        install(JsonFeature) {
+            serializer = JacksonSerializer {
+                registerKotlinModule()
+                registerModule(JavaTimeModule())
+                configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false)
+                configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+            }
+        }
+    }
+
     val stsClient = StsOidcClient(credentials.serviceuserUsername, credentials.serviceuserPassword)
-    val sakClient = SakClient(env.opprettSakUrl, stsClient)
-    val dokArkivClient = DokArkivClient(env.dokArkivUrl, stsClient, coroutineContext)
-    val pdfgenClient = PdfgenClient(env.pdfgen, coroutineContext)
+    val sakClient = SakClient(env.opprettSakUrl, stsClient, httpClient)
+    val dokArkivClient = DokArkivClient(env.dokArkivUrl, stsClient, httpClient)
+    val pdfgenClient = PdfgenClient(env.pdfgen, httpClient)
 
     val personV3 = createPort<PersonV3>(env.personV3EndpointURL) {
         port { withSTS(credentials.serviceuserUsername, credentials.serviceuserPassword, env.securityTokenServiceURL) }
@@ -296,6 +295,7 @@ suspend fun onJournalRequest(
         }
         producer.send(ProducerRecord(env.journalCreatedTopic, receivedSykmelding.sykmelding.id, registerJournal))
 
+        MESSAGE_PERSISTED_IN_JOARK.inc()
         log.info("Melding lagret i Joark {} $loggingMeta",
                 keyValue("journalpostId", journalpost.journalpostId),
                 *loggingMeta.logValues)
