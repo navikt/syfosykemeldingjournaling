@@ -57,7 +57,7 @@ dependencies {
     implementation("io.prometheus:simpleclient_common:$prometheusVersion")
 
     implementation("io.ktor:ktor-server-netty:$ktorVersion")
-
+    implementation("io.ktor:ktor-client-cio:$ktorVersion")
     implementation("io.ktor:ktor-client-apache:$ktorVersion")
     implementation("io.ktor:ktor-client-json-jvm:$ktorVersion")
     implementation("io.ktor:ktor-client-auth-basic:$ktorVersion")
