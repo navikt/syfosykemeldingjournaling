@@ -26,7 +26,7 @@ class DokArkivClient(
     ): JournalpostResponse = retry(callName = "dokarkiv",
             retryIntervals = arrayOf(500L, 1000L, 3000L, 5000L, 10000L)) {
         try {
-            log.info("Kall til dokakriv Nav_Calldi {}, {}", journalpostRequest.eksternReferanseId,
+            log.info("Kall til dokakriv Nav-Callid {}, {}", journalpostRequest.eksternReferanseId,
                     fields(loggingMeta))
             httpClient.post<JournalpostResponse>(url) {
                 contentType(ContentType.Application.Json)
