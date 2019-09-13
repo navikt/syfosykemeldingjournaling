@@ -10,7 +10,7 @@ import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import io.confluent.kafka.serializers.KafkaAvroSerializer
 import io.ktor.application.Application
 import io.ktor.client.HttpClient
-import io.ktor.client.engine.cio.CIO
+import io.ktor.client.engine.apache.Apache
 import io.ktor.client.features.json.JacksonSerializer
 import io.ktor.client.features.json.JsonFeature
 import io.ktor.routing.routing
@@ -25,8 +25,7 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import net.logstash.logback.argument.StructuredArgument
-import net.logstash.logback.argument.StructuredArguments.keyValue
+import net.logstash.logback.argument.StructuredArguments.fields
 import no.nav.syfo.api.registerNaisApi
 import no.nav.syfo.client.DokArkivClient
 import no.nav.syfo.client.PdfgenClient
@@ -38,6 +37,7 @@ import no.nav.syfo.kafka.loadBaseConfig
 import no.nav.syfo.kafka.toConsumerConfig
 import no.nav.syfo.kafka.toProducerConfig
 import no.nav.syfo.kafka.toStreamsConfig
+import no.nav.syfo.metrics.MELDING_LAGER_I_JOARK
 import no.nav.syfo.model.AvsenderMottaker
 import no.nav.syfo.model.Behandler
 import no.nav.syfo.model.Bruker
@@ -89,21 +89,8 @@ val objectMapper: ObjectMapper = ObjectMapper().apply {
 }
 
 val log: Logger = LoggerFactory.getLogger("smsak")
-lateinit var ktorObjectMapper: ObjectMapper
 
 data class ApplicationState(var running: Boolean = true, var initialized: Boolean = false)
-
-@KtorExperimentalAPI
-val httpClient = HttpClient(CIO) {
-    install(JsonFeature) {
-        serializer = JacksonSerializer {
-            registerKotlinModule()
-            registerModule(JavaTimeModule())
-            configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false)
-            ktorObjectMapper = this
-        }
-    }
-}
 
 val coroutineContext = Executors.newFixedThreadPool(2).asCoroutineDispatcher()
 
@@ -118,10 +105,21 @@ fun main() = runBlocking(coroutineContext) {
         initRouting(applicationState)
     }.start(wait = false)
 
+    val httpClient = HttpClient(Apache) {
+        install(JsonFeature) {
+            serializer = JacksonSerializer {
+                registerKotlinModule()
+                registerModule(JavaTimeModule())
+                configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false)
+                configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+            }
+        }
+    }
+
     val stsClient = StsOidcClient(credentials.serviceuserUsername, credentials.serviceuserPassword)
-    val sakClient = SakClient(env.opprettSakUrl, stsClient)
-    val dokArkivClient = DokArkivClient(env.dokArkivUrl, stsClient, coroutineContext)
-    val pdfgenClient = PdfgenClient(env.pdfgen, coroutineContext)
+    val sakClient = SakClient(env.opprettSakUrl, stsClient, httpClient)
+    val dokArkivClient = DokArkivClient(env.dokArkivUrl, stsClient, httpClient)
+    val pdfgenClient = PdfgenClient(env.pdfgen, httpClient)
 
     val personV3 = createPort<PersonV3>(env.personV3EndpointURL) {
         port { withSTS(credentials.serviceuserUsername, credentials.serviceuserPassword, env.securityTokenServiceURL) }
@@ -189,9 +187,7 @@ fun CoroutineScope.createListener(applicationState: ApplicationState, action: su
             try {
                 action()
             } catch (e: TrackableException) {
-                log.error("En uhaandtert feil oppstod, applikasjonen restartes. ${e.loggingMeta}",
-                        *e.loggingMeta.logValues,
-                        e.cause)
+                log.error("En uhåndtert feil oppstod, applikasjonen restarter {}", fields(e.loggingMeta), e.cause)
             } finally {
                 applicationState.running = false
             }
@@ -265,15 +261,14 @@ suspend fun onJournalRequest(
     personV3: PersonV3,
     validationResult: ValidationResult
 ) = coroutineScope {
-    val logValues = arrayOf(
-            keyValue("msgId", receivedSykmelding.msgId),
-            keyValue("mottakId", receivedSykmelding.navLogId),
-            keyValue("sykmeldingId", receivedSykmelding.sykmelding.id),
-            keyValue("orgNr", receivedSykmelding.legekontorOrgNr)
-    )
-    val loggingMeta = LoggingMeta(logValues)
+    val loggingMeta = LoggingMeta(
+        mottakId = receivedSykmelding.navLogId,
+        orgNr = receivedSykmelding.legekontorOrgNr,
+        msgId = receivedSykmelding.msgId,
+        sykmeldingId = receivedSykmelding.sykmelding.id
+)
     wrapExceptions(loggingMeta) {
-        log.info("Mottok en sykmelding, prover a lagre i Joark $loggingMeta", loggingMeta.logValues)
+        log.info("Mottok en sykmelding, prover aa lagre i Joark {}", fields(loggingMeta))
 
         val patient = fetchPerson(personV3, receivedSykmelding.personNrPasient, loggingMeta)
 
@@ -283,7 +278,7 @@ suspend fun onJournalRequest(
                 loggingMeta)
 
         val pdf = pdfgenClient.createPdf(pdfPayload)
-        log.info("PDF generert $loggingMeta", *loggingMeta.logValues)
+        log.info("PDF generert {}", fields(loggingMeta))
 
         val journalpostPayload = createJournalpostPayload(receivedSykmelding, sak.id.toString(), pdf, validationResult)
         val journalpost = dokArkivClient.createJournalpost(journalpostPayload, loggingMeta)
@@ -296,28 +291,12 @@ suspend fun onJournalRequest(
         }
         producer.send(ProducerRecord(env.journalCreatedTopic, receivedSykmelding.sykmelding.id, registerJournal))
 
-        log.info("Melding lagret i Joark {} $loggingMeta",
-                keyValue("journalpostId", journalpost.journalpostId),
-                *loggingMeta.logValues)
+        MELDING_LAGER_I_JOARK.inc()
+        log.info("Melding lagret i Joark med journalpostId {}, {}",
+                journalpost.journalpostId,
+                fields(loggingMeta))
     }
 }
-
-suspend fun <T : Any, O> T.wrapExceptions(loggingMeta: LoggingMeta, block: suspend T.() -> O): O {
-    try {
-        return block()
-    } catch (e: Exception) {
-        throw TrackableException(e, loggingMeta)
-    }
-}
-
-data class LoggingMeta(
-    val logValues: Array<StructuredArgument>
-) {
-    private val logFormat: String = logValues.joinToString(prefix = "(", postfix = ")", separator = ", ") { "{}" }
-    override fun toString() = logFormat
-}
-
-class TrackableException(override val cause: Throwable, val loggingMeta: LoggingMeta) : RuntimeException()
 
 fun createJournalpostPayload(
     receivedSykmelding: ReceivedSykmelding,
@@ -402,7 +381,7 @@ suspend fun fetchPerson(personV3: PersonV3, ident: String, loggingMeta: LoggingM
             .withAktoer(PersonIdent().withIdent(NorskIdent().withIdent(ident)))
         ).person
     } catch (e: Exception) {
-        log.warn("Kunne ikke hente person fra TPS ${e.message}, $loggingMeta", loggingMeta.logValues)
+        log.warn("Kunne ikke hente person fra TPS: ${e.message}, {}", fields(loggingMeta))
         throw e
     }
 }
@@ -416,7 +395,8 @@ fun createTittleJournalpost(validationResult: ValidationResult, receivedSykmeldi
 }
 
 private fun getFomTomTekst(receivedSykmelding: ReceivedSykmelding) =
-        "${receivedSykmelding.sykmelding.perioder.sortedSykmeldingPeriodeFOMDate().first().fom} - ${receivedSykmelding.sykmelding.perioder.sortedSykmeldingPeriodeTOMDate().last().tom}"
+        "${receivedSykmelding.sykmelding.perioder.sortedSykmeldingPeriodeFOMDate().first().fom} -" +
+                " ${receivedSykmelding.sykmelding.perioder.sortedSykmeldingPeriodeTOMDate().last().tom}"
 
 fun List<Periode>.sortedSykmeldingPeriodeFOMDate(): List<Periode> =
         sortedBy { it.fom }
