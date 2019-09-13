@@ -37,7 +37,7 @@ import no.nav.syfo.kafka.loadBaseConfig
 import no.nav.syfo.kafka.toConsumerConfig
 import no.nav.syfo.kafka.toProducerConfig
 import no.nav.syfo.kafka.toStreamsConfig
-import no.nav.syfo.metrics.MESSAGE_PERSISTED_IN_JOARK
+import no.nav.syfo.metrics.MELDING_LAGER_I_JOARK
 import no.nav.syfo.model.AvsenderMottaker
 import no.nav.syfo.model.Behandler
 import no.nav.syfo.model.Bruker
@@ -291,7 +291,7 @@ suspend fun onJournalRequest(
         }
         producer.send(ProducerRecord(env.journalCreatedTopic, receivedSykmelding.sykmelding.id, registerJournal))
 
-        MESSAGE_PERSISTED_IN_JOARK.inc()
+        MELDING_LAGER_I_JOARK.inc()
         log.info("Melding lagret i Joark med journalpostId {}, {}",
                 journalpost.journalpostId,
                 fields(loggingMeta))

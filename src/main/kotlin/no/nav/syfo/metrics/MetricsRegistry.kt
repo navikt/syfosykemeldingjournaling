@@ -4,14 +4,14 @@ import io.prometheus.client.Counter
 
 const val NAMESPACE = "syfosmsak"
 
-val MESSAGE_PERSISTED_IN_JOARK: Counter = Counter.Builder()
+val MELDING_LAGER_I_JOARK: Counter = Counter.Builder()
         .namespace(NAMESPACE)
-        .name("message_peristed_in_joark")
+        .name("melding_lagret_i_joark")
         .help("Meldinger som er lagret i joark")
         .register()
 
 val CASES_CREATED: Counter = Counter.Builder()
         .namespace(NAMESPACE)
-        .name("case_created")
+        .name("sak_lagret")
         .help("Antall saker som opprettes")
         .register()
