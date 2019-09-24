@@ -1,6 +1,7 @@
 package no.nav.syfo.model
 
 import no.nav.syfo.sm.Diagnosekoder
+import java.time.LocalDateTime
 
 data class PdfPayload(
     val pasient: Pasient,
@@ -8,7 +9,8 @@ data class PdfPayload(
     val biDiagnoser: List<EnumRepresentation>,
     val annenFraversArsakGrunn: List<EnumRepresentation>,
     val sykmelding: Sykmelding,
-    val validationResult: ValidationResult
+    val validationResult: ValidationResult,
+    val mottattDato: LocalDateTime
 )
 
 data class Pasient(
