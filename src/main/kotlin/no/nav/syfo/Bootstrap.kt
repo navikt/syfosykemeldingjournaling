@@ -359,7 +359,8 @@ fun createPdfPayload(
         hovedDiagnose = receivedSykmelding.sykmelding.medisinskVurdering.hovedDiagnose?.toPDFFormat(),
         biDiagnoser = receivedSykmelding.sykmelding.medisinskVurdering.biDiagnoser.map { it.toPDFFormat() },
         sykmelding = receivedSykmelding.sykmelding,
-        validationResult = validationResult
+        validationResult = validationResult,
+        mottattDato = receivedSykmelding.mottattDato
 )
 
 fun Application.initRouting(applicationState: ApplicationState) {
