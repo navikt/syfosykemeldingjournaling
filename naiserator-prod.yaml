@@ -36,8 +36,8 @@ spec:
   vault:
     enabled: true
   env:
-    - name: DOKMOT_MOTTA_INNGAAENDE_URL
-      value: http://dokmotinngaaende/rest/mottaInngaaendeForsendelse
+    - name: DOK_ARKIV_URL
+      value: http://dokarkiv/rest/journalpostapi/v1/journalpost
     - name: KAFKA_BOOTSTRAP_SERVERS_URL
       value: SASL_SSL://a01apvl00145.adeo.no:8443,SASL_SSL://a01apvl00146.adeo.no:8443,SASL_SSL://a01apvl00147.adeo.no:8443,SASL_SSL://a01apvl00149.adeo.no:8443
     - name: PERSON_V3_ENDPOINT_URL
