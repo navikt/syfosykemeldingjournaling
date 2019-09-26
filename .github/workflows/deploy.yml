@@ -46,11 +46,3 @@ jobs:
           cluster: prod-fss
           team: teamsykefravr
           resource: naiserator-prod.yaml
-      #- name: deploy redis to prod-fss
-      #  uses: navikt/deployment-cli/action@a260e84
-      #  env:
-      #    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      #  with:
-      #    cluster: prod-fss
-      #    team: teamsykefravr
-      #    resource: redis.yaml
