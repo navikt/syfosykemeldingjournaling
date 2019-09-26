@@ -15,7 +15,7 @@ val ktorVersion = "1.2.3"
 val logstashLogbackEncoder = "6.1"
 val logbackVersion = "1.2.3"
 val prometheusVersion = "0.6.0"
-val smCommonVersion = "2019.09.03-11-07-64032e3b6381665e9f9c0914cef626331399e66d"
+val smCommonVersion = "2019.09.25-05-44-08e26429f4e37cd57d99ba4d39fc74099a078b97"
 val spekVersion = "2.0.5"
 val syfosmoppgaveSchemasVersion = "785e8a93a3b881e89862035abe539c795c1222dd"
 val junitPlatformLauncher = "1.4.2"
@@ -33,8 +33,8 @@ val jaxbApiVersion = "2.4.0-b180830.0359"
 
 plugins {
     java
-    kotlin("jvm") version "1.3.40"
-    id("org.jmailen.kotlinter") version "1.26.0"
+    kotlin("jvm") version "1.3.50"
+    id("org.jmailen.kotlinter") version "2.1.0"
     id("com.diffplug.gradle.spotless") version "3.23.0"
     id("com.github.johnrengelman.shadow") version "5.0.0"
 }

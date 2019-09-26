@@ -1,5 +1,7 @@
 package no.nav.syfo
 
+import java.time.LocalDate
+import java.time.LocalDateTime
 import no.nav.syfo.model.Periode
 import no.nav.syfo.model.ReceivedSykmelding
 import no.nav.syfo.model.Status
@@ -7,8 +9,6 @@ import no.nav.syfo.model.ValidationResult
 import org.amshove.kluent.shouldEqual
 import org.spekframework.spek2.Spek
 import org.spekframework.spek2.style.specification.describe
-import java.time.LocalDate
-import java.time.LocalDateTime
 
 object SortedPeriodeSpek : Spek({
 

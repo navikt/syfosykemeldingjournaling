@@ -1,7 +1,7 @@
 package no.nav.syfo.model
 
-import no.nav.syfo.sm.Diagnosekoder
 import java.time.LocalDateTime
+import no.nav.syfo.sm.Diagnosekoder
 
 data class PdfPayload(
     val pasient: Pasient,
