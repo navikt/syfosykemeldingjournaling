@@ -305,7 +305,7 @@ fun createJournalpostPayload(
     validationResult: ValidationResult
 ) = JournalpostRequest(
         avsenderMottaker = AvsenderMottaker(
-                id = receivedSykmelding.sykmelding.behandler.fnr,
+                id = receivedSykmelding.personNrLege,
                 idType = "FNR",
                 land = "Norge",
                 navn = receivedSykmelding.sykmelding.behandler.formatName()
