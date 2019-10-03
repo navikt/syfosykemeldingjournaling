@@ -59,6 +59,7 @@ import no.nav.syfo.model.Status
 import no.nav.syfo.model.ValidationResult
 import no.nav.syfo.model.toPDFFormat
 import no.nav.syfo.sak.avro.RegisterJournal
+import no.nav.syfo.validation.validatePersonAndPersonDNumberRange
 import no.nav.syfo.ws.createPort
 import no.nav.tjeneste.virksomhet.person.v3.binding.PersonV3
 import no.nav.tjeneste.virksomhet.person.v3.informasjon.NorskIdent
@@ -304,12 +305,10 @@ fun createJournalpostPayload(
     pdf: ByteArray,
     validationResult: ValidationResult
 ) = JournalpostRequest(
-        avsenderMottaker = AvsenderMottaker(
-                id = receivedSykmelding.sykmelding.behandler.fnr,
-                idType = "FNR",
-                land = "Norge",
-                navn = receivedSykmelding.sykmelding.behandler.formatName()
-        ),
+        avsenderMottaker = when (validatePersonAndPersonDNumberRange(receivedSykmelding.sykmelding.behandler.fnr)) {
+            true -> createAvsenderMottakerValidFnr(receivedSykmelding)
+            else -> createAvsenderMottakerNotValidFnr(receivedSykmelding)
+        },
         bruker = Bruker(
                 id = receivedSykmelding.personNrPasient,
                 idType = "FNR"
@@ -341,6 +340,18 @@ fun createJournalpostPayload(
         ),
         tema = "SYM",
         tittel = createTittleJournalpost(validationResult, receivedSykmelding)
+)
+
+fun createAvsenderMottakerValidFnr(receivedSykmelding: ReceivedSykmelding): AvsenderMottaker = AvsenderMottaker(
+        id = receivedSykmelding.sykmelding.behandler.fnr,
+        idType = "FNR",
+        land = "Norge",
+        navn = receivedSykmelding.sykmelding.behandler.formatName()
+)
+
+fun createAvsenderMottakerNotValidFnr(receivedSykmelding: ReceivedSykmelding): AvsenderMottaker = AvsenderMottaker(
+        land = "Norge",
+        navn = receivedSykmelding.sykmelding.behandler.formatName()
 )
 
 fun createPdfPayload(
