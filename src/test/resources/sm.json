@@ -130,12 +130,14 @@
   "utdypendeOpplysninger": {
     "6.3": {
       "6.3.1": {
+        "sporsmal" : "må jobbe meir",
         "svar": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word",
         "restriksjoner": [
           "SKJERMET_FOR_ARBEIDSGIVER"
         ]
       },
       "6.3.2": {
+        "sporsmal" : "må jobbe meir",
         "svar": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word",
         "restriksjoner": [
           "SKJERMET_FOR_ARBEIDSGIVER"
