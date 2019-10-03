@@ -59,7 +59,7 @@ import no.nav.syfo.model.Status
 import no.nav.syfo.model.ValidationResult
 import no.nav.syfo.model.toPDFFormat
 import no.nav.syfo.sak.avro.RegisterJournal
-import no.nav.syfo.validation.validatePersonAndPersonDNumberRange
+import no.nav.syfo.validation.validatePersonAndDNumber
 import no.nav.syfo.ws.createPort
 import no.nav.tjeneste.virksomhet.person.v3.binding.PersonV3
 import no.nav.tjeneste.virksomhet.person.v3.informasjon.NorskIdent
@@ -305,7 +305,7 @@ fun createJournalpostPayload(
     pdf: ByteArray,
     validationResult: ValidationResult
 ) = JournalpostRequest(
-        avsenderMottaker = when (validatePersonAndPersonDNumberRange(receivedSykmelding.sykmelding.behandler.fnr)) {
+        avsenderMottaker = when (validatePersonAndDNumber(receivedSykmelding.sykmelding.behandler.fnr)) {
             true -> createAvsenderMottakerValidFnr(receivedSykmelding)
             else -> createAvsenderMottakerNotValidFnr(receivedSykmelding)
         },

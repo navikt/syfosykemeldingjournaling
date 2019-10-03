@@ -3,7 +3,6 @@ package no.nav.syfo
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import no.nav.syfo.validation.validatePersonAndDNumber
-import no.nav.syfo.validation.validatePersonAndPersonDNumberRange
 import org.amshove.kluent.shouldEqual
 import org.spekframework.spek2.Spek
 import org.spekframework.spek2.style.specification.describe
@@ -14,13 +13,13 @@ object ValidateDNumberSpek : Spek({
     describe("Testing validation personNumber") {
         it("Should check validate as fnr") {
             val generateFnr = generatePersonNumber(LocalDate.of(1991, 1, 1), false)
-            val validFnr = validatePersonAndPersonDNumberRange(generateFnr)
+            val validFnr = validatePersonAndDNumber(generateFnr)
             validFnr shouldEqual true
         }
 
         it("Should check validate as d-number") {
             val generateDnumber = generatePersonNumber(LocalDate.of(1991, 1, 1), true)
-            val validdnumber = validatePersonAndPersonDNumberRange(generateDnumber)
+            val validdnumber = validatePersonAndDNumber(generateDnumber)
             validdnumber shouldEqual true
         }
     }
