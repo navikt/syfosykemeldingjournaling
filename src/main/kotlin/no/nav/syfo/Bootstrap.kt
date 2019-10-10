@@ -197,7 +197,6 @@ fun launchListeners(
             }
         }
 
-        applicationState.alive = true
 }
 
 @KtorExperimentalAPI
