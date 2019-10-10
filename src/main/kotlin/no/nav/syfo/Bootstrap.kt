@@ -181,11 +181,10 @@ fun launchListeners(
     pdfgenClient: PdfgenClient,
     personV3: PersonV3
 ) {
-    createListener(applicationState) {
+            createListener(applicationState) {
                 val kafkaconsumer = KafkaConsumer<String, String>(consumerProperties)
                 kafkaconsumer.subscribe(listOf(env.sm2013SakTopic))
 
-            createListener(applicationState) {
                 blockingApplicationLogic(env,
                         kafkaconsumer,
                         producer,
@@ -195,8 +194,6 @@ fun launchListeners(
                         pdfgenClient,
                         personV3)
             }
-        }
-
 }
 
 @KtorExperimentalAPI
