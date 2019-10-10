@@ -194,6 +194,8 @@ fun launchListeners(
                         pdfgenClient,
                         personV3)
             }
+
+    applicationState.alive = true
 }
 
 @KtorExperimentalAPI
