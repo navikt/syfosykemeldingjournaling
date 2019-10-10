@@ -8,35 +8,32 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.kotlin.readValue
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import io.confluent.kafka.serializers.KafkaAvroSerializer
-import io.ktor.application.Application
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.apache.Apache
 import io.ktor.client.features.json.JacksonSerializer
 import io.ktor.client.features.json.JsonFeature
-import io.ktor.routing.routing
-import io.ktor.server.engine.embeddedServer
-import io.ktor.server.netty.Netty
 import io.ktor.util.KtorExperimentalAPI
 import io.prometheus.client.hotspot.DefaultExports
 import java.io.IOException
 import java.nio.file.Paths
 import java.time.Duration
 import java.util.Properties
-import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.asCoroutineDispatcher
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import net.logstash.logback.argument.StructuredArguments.fields
-import no.nav.syfo.api.registerNaisApi
+import no.nav.syfo.application.ApplicationServer
+import no.nav.syfo.application.ApplicationState
+import no.nav.syfo.application.createApplicationEngine
 import no.nav.syfo.client.DokArkivClient
 import no.nav.syfo.client.PdfgenClient
 import no.nav.syfo.client.SakClient
 import no.nav.syfo.client.StsOidcClient
+import no.nav.syfo.client.createJournalpostPayload
+import no.nav.syfo.client.createPdfPayload
 import no.nav.syfo.helpers.retry
 import no.nav.syfo.kafka.envOverrides
 import no.nav.syfo.kafka.loadBaseConfig
@@ -44,22 +41,12 @@ import no.nav.syfo.kafka.toConsumerConfig
 import no.nav.syfo.kafka.toProducerConfig
 import no.nav.syfo.kafka.toStreamsConfig
 import no.nav.syfo.metrics.MELDING_LAGER_I_JOARK
-import no.nav.syfo.model.AvsenderMottaker
-import no.nav.syfo.model.Behandler
-import no.nav.syfo.model.Bruker
-import no.nav.syfo.model.Dokument
-import no.nav.syfo.model.Dokumentvarianter
-import no.nav.syfo.model.JournalpostRequest
-import no.nav.syfo.model.Pasient
-import no.nav.syfo.model.PdfPayload
-import no.nav.syfo.model.Periode
 import no.nav.syfo.model.ReceivedSykmelding
-import no.nav.syfo.model.Sak
-import no.nav.syfo.model.Status
 import no.nav.syfo.model.ValidationResult
-import no.nav.syfo.model.toPDFFormat
 import no.nav.syfo.sak.avro.RegisterJournal
-import no.nav.syfo.validation.validatePersonAndDNumber
+import no.nav.syfo.util.LoggingMeta
+import no.nav.syfo.util.TrackableException
+import no.nav.syfo.util.wrapExceptions
 import no.nav.syfo.ws.createPort
 import no.nav.tjeneste.virksomhet.person.v3.binding.PersonV3
 import no.nav.tjeneste.virksomhet.person.v3.informasjon.NorskIdent
@@ -89,22 +76,21 @@ val objectMapper: ObjectMapper = ObjectMapper().apply {
     configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false)
 }
 
-val log: Logger = LoggerFactory.getLogger("smsak")
-
-data class ApplicationState(var running: Boolean = true, var initialized: Boolean = false)
-
-val coroutineContext = Executors.newFixedThreadPool(2).asCoroutineDispatcher()
+val log: Logger = LoggerFactory.getLogger("no.nav.syfo.syfosmsak")
 
 @KtorExperimentalAPI
-fun main() = runBlocking(coroutineContext) {
-    DefaultExports.initialize()
+fun main() {
     val env = Environment()
     val credentials = objectMapper.readValue<VaultCredentials>(Paths.get("/var/run/secrets/nais.io/vault/credentials.json").toFile())
     val applicationState = ApplicationState()
+    val applicationEngine = createApplicationEngine(
+            env,
+            applicationState)
 
-    val applicationServer = embeddedServer(Netty, env.applicationPort) {
-        initRouting(applicationState)
-    }.start(wait = false)
+    val applicationServer = ApplicationServer(applicationEngine)
+    applicationServer.start()
+
+    DefaultExports.initialize()
 
     val httpClient = HttpClient(Apache) {
         install(JsonFeature) {
@@ -139,11 +125,7 @@ fun main() = runBlocking(coroutineContext) {
 
     launchListeners(env, applicationState, consumerConfig, producer, sakClient, dokArkivClient, pdfgenClient, personV3)
 
-    Runtime.getRuntime().addShutdownHook(Thread {
-        kafkaStream.close()
-        applicationState.running = false
-        applicationServer.stop(10, 10, TimeUnit.SECONDS)
-    })
+    applicationState.ready = true
 }
 
 fun createKafkaStream(streamProperties: Properties, env: Environment): KafkaStreams {
@@ -183,19 +165,19 @@ fun createKafkaStream(streamProperties: Properties, env: Environment): KafkaStre
     return KafkaStreams(streamsBuilder.build(), streamProperties)
 }
 
-fun CoroutineScope.createListener(applicationState: ApplicationState, action: suspend CoroutineScope.() -> Unit): Job =
-        launch {
+fun createListener(applicationState: ApplicationState, action: suspend CoroutineScope.() -> Unit): Job =
+        GlobalScope.launch {
             try {
                 action()
             } catch (e: TrackableException) {
                 log.error("En uhåndtert feil oppstod, applikasjonen restarter {}", fields(e.loggingMeta), e.cause)
             } finally {
-                applicationState.running = false
+                applicationState.alive = false
             }
         }
 
 @KtorExperimentalAPI
-suspend fun CoroutineScope.launchListeners(
+fun launchListeners(
     env: Environment,
     applicationState: ApplicationState,
     consumerProperties: Properties,
@@ -205,7 +187,7 @@ suspend fun CoroutineScope.launchListeners(
     pdfgenClient: PdfgenClient,
     personV3: PersonV3
 ) {
-        val sakListeners = 0.until(env.applicationThreads).map {
+    createListener(applicationState) {
                 val kafkaconsumer = KafkaConsumer<String, String>(consumerProperties)
                 kafkaconsumer.subscribe(listOf(env.sm2013SakTopic))
 
@@ -219,10 +201,9 @@ suspend fun CoroutineScope.launchListeners(
                         pdfgenClient,
                         personV3)
             }
-        }.toList()
+        }
 
-        applicationState.initialized = true
-        sakListeners.forEach { it.join() }
+        applicationState.alive = true
 }
 
 @KtorExperimentalAPI
@@ -236,7 +217,7 @@ suspend fun blockingApplicationLogic(
     pdfgenClient: PdfgenClient,
     personV3: PersonV3
 ) {
-    while (applicationState.running) {
+    while (applicationState.ready) {
         consumer.poll(Duration.ofMillis(0)).forEach {
             val behandlingsUtfallReceivedSykmelding: BehandlingsUtfallReceivedSykmelding =
                     objectMapper.readValue(it.value())
@@ -244,7 +225,15 @@ suspend fun blockingApplicationLogic(
                     objectMapper.readValue(behandlingsUtfallReceivedSykmelding.receivedSykmelding)
             val validationResult: ValidationResult =
                     objectMapper.readValue(behandlingsUtfallReceivedSykmelding.behandlingsUtfall)
-            onJournalRequest(env, receivedSykmelding, producer, sakClient, dokArkivClient, pdfgenClient, personV3, validationResult)
+
+            val loggingMeta = LoggingMeta(
+                    mottakId = receivedSykmelding.navLogId,
+                    orgNr = receivedSykmelding.legekontorOrgNr,
+                    msgId = receivedSykmelding.msgId,
+                    sykmeldingId = receivedSykmelding.sykmelding.id
+            )
+
+            onJournalRequest(env, receivedSykmelding, producer, sakClient, dokArkivClient, pdfgenClient, personV3, validationResult, loggingMeta)
         }
 
         delay(100)
@@ -260,14 +249,9 @@ suspend fun onJournalRequest(
     dokArkivClient: DokArkivClient,
     pdfgenClient: PdfgenClient,
     personV3: PersonV3,
-    validationResult: ValidationResult
-) = coroutineScope {
-    val loggingMeta = LoggingMeta(
-        mottakId = receivedSykmelding.navLogId,
-        orgNr = receivedSykmelding.legekontorOrgNr,
-        msgId = receivedSykmelding.msgId,
-        sykmeldingId = receivedSykmelding.sykmelding.id
-)
+    validationResult: ValidationResult,
+    loggingMeta: LoggingMeta
+) {
     wrapExceptions(loggingMeta) {
         log.info("Mottok en sykmelding, prover aa lagre i Joark {}", fields(loggingMeta))
 
@@ -299,90 +283,6 @@ suspend fun onJournalRequest(
     }
 }
 
-fun createJournalpostPayload(
-    receivedSykmelding: ReceivedSykmelding,
-    caseId: String,
-    pdf: ByteArray,
-    validationResult: ValidationResult
-) = JournalpostRequest(
-        avsenderMottaker = when (validatePersonAndDNumber(receivedSykmelding.sykmelding.behandler.fnr)) {
-            true -> createAvsenderMottakerValidFnr(receivedSykmelding)
-            else -> createAvsenderMottakerNotValidFnr(receivedSykmelding)
-        },
-        bruker = Bruker(
-                id = receivedSykmelding.personNrPasient,
-                idType = "FNR"
-        ),
-        dokumenter = listOf(Dokument(
-                dokumentvarianter = listOf(
-                        Dokumentvarianter(
-                                filnavn = "Sykmelding",
-                                filtype = "PDFA",
-                                variantformat = "ARKIV",
-                                fysiskDokument = pdf
-                        ),
-                        Dokumentvarianter(
-                                filnavn = "Sykmelding json",
-                                filtype = "JSON",
-                                variantformat = "ORIGINAL",
-                                fysiskDokument = objectMapper.writeValueAsBytes(receivedSykmelding.sykmelding)
-                        )
-                ),
-                tittel = createTittleJournalpost(validationResult, receivedSykmelding)
-        )),
-        eksternReferanseId = receivedSykmelding.sykmelding.id,
-        journalfoerendeEnhet = "9999",
-        journalpostType = "INNGAAENDE",
-        kanal = "HELSENETTET",
-        sak = Sak(
-                arkivsaksnummer = caseId,
-                arkivsaksystem = "GSAK"
-        ),
-        tema = "SYM",
-        tittel = createTittleJournalpost(validationResult, receivedSykmelding)
-)
-
-fun createAvsenderMottakerValidFnr(receivedSykmelding: ReceivedSykmelding): AvsenderMottaker = AvsenderMottaker(
-        id = receivedSykmelding.sykmelding.behandler.fnr,
-        idType = "FNR",
-        land = "Norge",
-        navn = receivedSykmelding.sykmelding.behandler.formatName()
-)
-
-fun createAvsenderMottakerNotValidFnr(receivedSykmelding: ReceivedSykmelding): AvsenderMottaker = AvsenderMottaker(
-        land = "Norge",
-        navn = receivedSykmelding.sykmelding.behandler.formatName()
-)
-
-fun createPdfPayload(
-    receivedSykmelding: ReceivedSykmelding,
-    validationResult: ValidationResult,
-    person: TPSPerson
-): PdfPayload = PdfPayload(
-        pasient = Pasient(
-                fornavn = person.personnavn.fornavn,
-                mellomnavn = person.personnavn.mellomnavn,
-                etternavn = person.personnavn.etternavn,
-                personnummer = receivedSykmelding.personNrPasient,
-                tlfNummer = receivedSykmelding.tlfPasient
-        ),
-        annenFraversArsakGrunn = receivedSykmelding.sykmelding.medisinskVurdering.annenFraversArsak?.grunn?.map { it.toPDFFormat() } ?: listOf(),
-        hovedDiagnose = receivedSykmelding.sykmelding.medisinskVurdering.hovedDiagnose?.toPDFFormat(),
-        biDiagnoser = receivedSykmelding.sykmelding.medisinskVurdering.biDiagnoser.map { it.toPDFFormat() },
-        sykmelding = receivedSykmelding.sykmelding,
-        validationResult = validationResult,
-        mottattDato = receivedSykmelding.mottattDato
-)
-
-fun Application.initRouting(applicationState: ApplicationState) {
-    routing {
-        registerNaisApi(
-                readynessCheck = { applicationState.initialized },
-                livenessCheck = { applicationState.running }
-        )
-    }
-}
-
 suspend fun fetchPerson(personV3: PersonV3, ident: String, loggingMeta: LoggingMeta): TPSPerson = retry(
         callName = "tps_hent_person",
         retryIntervals = arrayOf(500L, 1000L, 3000L, 5000L, 10000L),
@@ -397,28 +297,3 @@ suspend fun fetchPerson(personV3: PersonV3, ident: String, loggingMeta: LoggingM
         throw e
     }
 }
-
-fun createTittleJournalpost(validationResult: ValidationResult, receivedSykmelding: ReceivedSykmelding): String {
-    return if (validationResult.status == Status.INVALID) {
-        "Avvist Sykmelding ${getFomTomTekst(receivedSykmelding)}"
-    } else {
-        "Sykmelding ${getFomTomTekst(receivedSykmelding)}"
-    }
-}
-
-private fun getFomTomTekst(receivedSykmelding: ReceivedSykmelding) =
-        "${receivedSykmelding.sykmelding.perioder.sortedSykmeldingPeriodeFOMDate().first().fom} -" +
-                " ${receivedSykmelding.sykmelding.perioder.sortedSykmeldingPeriodeTOMDate().last().tom}"
-
-fun List<Periode>.sortedSykmeldingPeriodeFOMDate(): List<Periode> =
-        sortedBy { it.fom }
-
-fun List<Periode>.sortedSykmeldingPeriodeTOMDate(): List<Periode> =
-        sortedBy { it.tom }
-
-fun Behandler.formatName(): String =
-        if (mellomnavn == null) {
-            "$etternavn $fornavn"
-        } else {
-            "$etternavn $fornavn $mellomnavn"
-        }

@@ -5,62 +5,55 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.routing.routing
 import io.ktor.server.testing.TestApplicationEngine
 import io.ktor.server.testing.handleRequest
-import no.nav.syfo.api.registerNaisApi
+import no.nav.syfo.application.ApplicationState
+import no.nav.syfo.application.api.registerNaisApi
 import org.amshove.kluent.shouldEqual
-import org.amshove.kluent.shouldNotEqual
 import org.spekframework.spek2.Spek
 import org.spekframework.spek2.style.specification.describe
 
-object SelftestSpek : Spek({
-    val applicationState = ApplicationState(running = true, initialized = true)
-    describe("Calling selftest with successful liveness and readyness tests") {
+object SelfTestSpek : Spek({
+
+    describe("Successfull liveness and readyness tests") {
         with(TestApplicationEngine()) {
             start()
-            application.initRouting(applicationState)
+            val applicationState = ApplicationState()
+            applicationState.ready = true
+            applicationState.alive = true
+            application.routing { registerNaisApi(applicationState) }
 
             it("Returns ok on is_alive") {
                 with(handleRequest(HttpMethod.Get, "/is_alive")) {
                     response.status() shouldEqual HttpStatusCode.OK
-                    response.content shouldNotEqual null
+                    response.content shouldEqual "I'm alive! :)"
                 }
             }
-
-            it("Returns ok on is_ready") {
+            it("Returns ok in is_ready") {
                 with(handleRequest(HttpMethod.Get, "/is_ready")) {
                     response.status() shouldEqual HttpStatusCode.OK
-                    response.content shouldNotEqual null
+                    response.content shouldEqual "I'm ready! :)"
                 }
             }
         }
     }
-
-    describe("Calling selftests with unsucessful liveness test") {
+    describe("Unsuccessful liveness and readyness") {
         with(TestApplicationEngine()) {
             start()
-            application.routing {
-                registerNaisApi(readynessCheck = { true }, livenessCheck = { false })
-            }
+            val applicationState = ApplicationState()
+            applicationState.ready = false
+            applicationState.alive = false
+            application.routing { registerNaisApi(applicationState) }
 
             it("Returns internal server error when liveness check fails") {
                 with(handleRequest(HttpMethod.Get, "/is_alive")) {
                     response.status() shouldEqual HttpStatusCode.InternalServerError
-                    response.content shouldNotEqual null
+                    response.content shouldEqual "I'm dead x_x"
                 }
-            }
-        }
-    }
-
-    describe("Calling selftests with unsucessful readyness test") {
-        with(TestApplicationEngine()) {
-            start()
-            application.routing {
-                registerNaisApi(readynessCheck = { false }, livenessCheck = { true })
             }
 
             it("Returns internal server error when readyness check fails") {
                 with(handleRequest(HttpMethod.Get, "/is_ready")) {
                     response.status() shouldEqual HttpStatusCode.InternalServerError
-                    response.content shouldNotEqual null
+                    response.content shouldEqual "Please wait! I'm not ready :("
                 }
             }
         }
