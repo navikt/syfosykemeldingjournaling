@@ -1,6 +1,5 @@
 package no.nav.syfo
 
-import com.ctc.wstx.exc.WstxException
 import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.SerializationFeature
@@ -14,7 +13,6 @@ import io.ktor.client.features.json.JacksonSerializer
 import io.ktor.client.features.json.JsonFeature
 import io.ktor.util.KtorExperimentalAPI
 import io.prometheus.client.hotspot.DefaultExports
-import java.io.IOException
 import java.nio.file.Paths
 import java.time.Duration
 import java.util.Properties
@@ -34,7 +32,6 @@ import no.nav.syfo.client.SakClient
 import no.nav.syfo.client.StsOidcClient
 import no.nav.syfo.client.createJournalpostPayload
 import no.nav.syfo.client.createPdfPayload
-import no.nav.syfo.helpers.retry
 import no.nav.syfo.kafka.envOverrides
 import no.nav.syfo.kafka.loadBaseConfig
 import no.nav.syfo.kafka.toConsumerConfig
@@ -50,10 +47,6 @@ import no.nav.syfo.util.TrackableException
 import no.nav.syfo.util.wrapExceptions
 import no.nav.syfo.ws.createPort
 import no.nav.tjeneste.virksomhet.person.v3.binding.PersonV3
-import no.nav.tjeneste.virksomhet.person.v3.informasjon.NorskIdent
-import no.nav.tjeneste.virksomhet.person.v3.informasjon.Person as TPSPerson
-import no.nav.tjeneste.virksomhet.person.v3.informasjon.PersonIdent
-import no.nav.tjeneste.virksomhet.person.v3.meldinger.HentPersonRequest
 import org.apache.kafka.clients.consumer.KafkaConsumer
 import org.apache.kafka.clients.producer.KafkaProducer
 import org.apache.kafka.clients.producer.ProducerRecord
