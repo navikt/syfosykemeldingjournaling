@@ -44,6 +44,7 @@ import no.nav.syfo.metrics.MELDING_LAGER_I_JOARK
 import no.nav.syfo.model.ReceivedSykmelding
 import no.nav.syfo.model.ValidationResult
 import no.nav.syfo.sak.avro.RegisterJournal
+import no.nav.syfo.service.fetchPerson
 import no.nav.syfo.util.LoggingMeta
 import no.nav.syfo.util.TrackableException
 import no.nav.syfo.util.wrapExceptions
@@ -280,20 +281,5 @@ suspend fun onJournalRequest(
         log.info("Melding lagret i Joark med journalpostId {}, {}",
                 journalpost.journalpostId,
                 fields(loggingMeta))
-    }
-}
-
-suspend fun fetchPerson(personV3: PersonV3, ident: String, loggingMeta: LoggingMeta): TPSPerson = retry(
-        callName = "tps_hent_person",
-        retryIntervals = arrayOf(500L, 1000L, 3000L, 5000L, 10000L),
-        legalExceptions = *arrayOf(IOException::class, WstxException::class)
-) {
-    try {
-        personV3.hentPerson(HentPersonRequest()
-            .withAktoer(PersonIdent().withIdent(NorskIdent().withIdent(ident)))
-        ).person
-    } catch (e: Exception) {
-        log.warn("Kunne ikke hente person fra TPS: ${e.message}, {}", fields(loggingMeta))
-        throw e
     }
 }
