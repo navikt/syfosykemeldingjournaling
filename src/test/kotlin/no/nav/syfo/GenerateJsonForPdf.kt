@@ -2,12 +2,14 @@ package no.nav.syfo
 
 import com.fasterxml.jackson.module.kotlin.readValue
 import java.time.LocalDateTime
+import no.nav.syfo.client.createPdfPayload
 import no.nav.syfo.model.PdfPayload
 import no.nav.syfo.model.ReceivedSykmelding
 import no.nav.syfo.model.RuleInfo
 import no.nav.syfo.model.Status
 import no.nav.syfo.model.Sykmelding
 import no.nav.syfo.model.ValidationResult
+import no.nav.syfo.sm.Diagnosekoder.objectMapper
 import no.nav.tjeneste.virksomhet.person.v3.informasjon.Person
 import no.nav.tjeneste.virksomhet.person.v3.informasjon.Personnavn
 

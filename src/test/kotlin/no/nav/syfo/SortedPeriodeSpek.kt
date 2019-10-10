@@ -2,6 +2,9 @@ package no.nav.syfo
 
 import java.time.LocalDate
 import java.time.LocalDateTime
+import no.nav.syfo.client.createTittleJournalpost
+import no.nav.syfo.client.sortedSykmeldingPeriodeFOMDate
+import no.nav.syfo.client.sortedSykmeldingPeriodeTOMDate
 import no.nav.syfo.model.Periode
 import no.nav.syfo.model.ReceivedSykmelding
 import no.nav.syfo.model.Status

@@ -16,7 +16,7 @@ val logstashLogbackEncoder = "6.1"
 val logbackVersion = "1.2.3"
 val prometheusVersion = "0.6.0"
 val smCommonVersion = "2019.09.25-05-44-08e26429f4e37cd57d99ba4d39fc74099a078b97"
-val spekVersion = "2.0.5"
+val spekVersion = "2.0.8"
 val syfosmoppgaveSchemasVersion = "785e8a93a3b881e89862035abe539c795c1222dd"
 val junitPlatformLauncher = "1.4.2"
 val navPersonv3Version = "1.2019.07.11-06.47-b55f47790a9d"
@@ -109,7 +109,6 @@ dependencies {
 
 
 tasks {
-
     withType<Jar> {
         manifest.attributes["Main-Class"] = "no.nav.syfo.BootstrapKt"
     }
