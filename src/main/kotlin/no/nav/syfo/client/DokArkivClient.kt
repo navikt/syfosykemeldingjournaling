@@ -83,7 +83,8 @@ fun createJournalpostPayload(
                                 fysiskDokument = objectMapper.writeValueAsBytes(receivedSykmelding.sykmelding)
                         )
                 ),
-                tittel = createTittleJournalpost(validationResult, receivedSykmelding)
+                tittel = createTittleJournalpost(validationResult, receivedSykmelding),
+                brevkode = "NAV 08-07.04 A"
         )),
         eksternReferanseId = receivedSykmelding.sykmelding.id,
         journalfoerendeEnhet = "9999",
