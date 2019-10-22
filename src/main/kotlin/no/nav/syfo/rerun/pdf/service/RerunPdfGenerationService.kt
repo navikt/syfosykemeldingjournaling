@@ -1,6 +1,7 @@
 package no.nav.syfo.rerun.pdf.service
 
 import io.ktor.util.KtorExperimentalAPI
+import kotlinx.coroutines.delay
 import java.time.Duration
 import net.logstash.logback.argument.StructuredArguments.fields
 import no.nav.syfo.application.ApplicationState
@@ -29,9 +30,10 @@ class RerunPdfGenerationService(private val kafkaConsumer: KafkaConsumer<String,
 
     private suspend fun subscribeAndCreatePDF() {
         while (applicationState.alive) {
-            kafkaConsumer.poll(Duration.ofMillis(10_000)).forEach {
+            kafkaConsumer.poll(Duration.ofMillis(0)).forEach {
                 handleReceivedSykmelding(objectMapper.readValue(it.value(), ReceivedSykmelding::class.java))
             }
+            delay(100)
         }
     }
 
