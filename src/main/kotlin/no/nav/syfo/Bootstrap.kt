@@ -30,26 +30,22 @@ import no.nav.syfo.client.DokArkivClient
 import no.nav.syfo.client.PdfgenClient
 import no.nav.syfo.client.SakClient
 import no.nav.syfo.client.StsOidcClient
-import no.nav.syfo.client.createJournalpostPayload
-import no.nav.syfo.client.createPdfPayload
 import no.nav.syfo.kafka.envOverrides
 import no.nav.syfo.kafka.loadBaseConfig
 import no.nav.syfo.kafka.toConsumerConfig
 import no.nav.syfo.kafka.toProducerConfig
 import no.nav.syfo.kafka.toStreamsConfig
-import no.nav.syfo.metrics.MELDING_LAGER_I_JOARK
 import no.nav.syfo.model.ReceivedSykmelding
 import no.nav.syfo.model.ValidationResult
+import no.nav.syfo.rerun.pdf.service.RerunPdfGenerationService
 import no.nav.syfo.sak.avro.RegisterJournal
-import no.nav.syfo.service.fetchPerson
+import no.nav.syfo.service.JournalService
 import no.nav.syfo.util.LoggingMeta
 import no.nav.syfo.util.TrackableException
-import no.nav.syfo.util.wrapExceptions
 import no.nav.syfo.ws.createPort
 import no.nav.tjeneste.virksomhet.person.v3.binding.PersonV3
 import org.apache.kafka.clients.consumer.KafkaConsumer
 import org.apache.kafka.clients.producer.KafkaProducer
-import org.apache.kafka.clients.producer.ProducerRecord
 import org.apache.kafka.common.serialization.Serdes
 import org.apache.kafka.common.serialization.StringDeserializer
 import org.apache.kafka.streams.KafkaStreams
@@ -115,9 +111,14 @@ fun main() {
     val streamProperties = kafkaBaseConfig.toStreamsConfig(env.applicationName, valueSerde = Serdes.String()::class)
     val kafkaStream = createKafkaStream(streamProperties, env)
 
+    val journalService = JournalService(env, producer, sakClient, dokArkivClient, pdfgenClient, personV3)
+    val kafkaConsumer = KafkaConsumer<String, String>(consumerConfig)
+    val rerunPdfGenerationService = RerunPdfGenerationService(kafkaConsumer, journalService, applicationState, env.rerunTopicName)
+
+    rerunPdfGenerationService.start()
     kafkaStream.start()
 
-    launchListeners(env, applicationState, consumerConfig, producer, sakClient, dokArkivClient, pdfgenClient, personV3)
+    launchListeners(env, applicationState, consumerConfig, journalService)
 
     applicationState.ready = true
 }
@@ -175,24 +176,16 @@ fun launchListeners(
     env: Environment,
     applicationState: ApplicationState,
     consumerProperties: Properties,
-    producer: KafkaProducer<String, RegisterJournal>,
-    sakClient: SakClient,
-    dokArkivClient: DokArkivClient,
-    pdfgenClient: PdfgenClient,
-    personV3: PersonV3
+    journalService: JournalService
 ) {
             createListener(applicationState) {
                 val kafkaconsumer = KafkaConsumer<String, String>(consumerProperties)
                 kafkaconsumer.subscribe(listOf(env.sm2013SakTopic))
 
-                blockingApplicationLogic(env,
+                blockingApplicationLogic(
                         kafkaconsumer,
-                        producer,
                         applicationState,
-                        sakClient,
-                        dokArkivClient,
-                        pdfgenClient,
-                        personV3)
+                        journalService)
             }
 
     applicationState.alive = true
@@ -200,14 +193,9 @@ fun launchListeners(
 
 @KtorExperimentalAPI
 suspend fun blockingApplicationLogic(
-    env: Environment,
     consumer: KafkaConsumer<String, String>,
-    producer: KafkaProducer<String, RegisterJournal>,
     applicationState: ApplicationState,
-    sakClient: SakClient,
-    dokArkivClient: DokArkivClient,
-    pdfgenClient: PdfgenClient,
-    personV3: PersonV3
+    journalService: JournalService
 ) {
     while (applicationState.ready) {
         consumer.poll(Duration.ofMillis(0)).forEach {
@@ -224,53 +212,9 @@ suspend fun blockingApplicationLogic(
                     msgId = receivedSykmelding.msgId,
                     sykmeldingId = receivedSykmelding.sykmelding.id
             )
-
-            onJournalRequest(env, receivedSykmelding, producer, sakClient, dokArkivClient, pdfgenClient, personV3, validationResult, loggingMeta)
+            journalService.onJournalRequest(receivedSykmelding, validationResult, loggingMeta)
         }
 
         delay(100)
-    }
-}
-
-@KtorExperimentalAPI
-suspend fun onJournalRequest(
-    env: Environment,
-    receivedSykmelding: ReceivedSykmelding,
-    producer: KafkaProducer<String, RegisterJournal>,
-    sakClient: SakClient,
-    dokArkivClient: DokArkivClient,
-    pdfgenClient: PdfgenClient,
-    personV3: PersonV3,
-    validationResult: ValidationResult,
-    loggingMeta: LoggingMeta
-) {
-    wrapExceptions(loggingMeta) {
-        log.info("Mottok en sykmelding, prover aa lagre i Joark {}", fields(loggingMeta))
-
-        val patient = fetchPerson(personV3, receivedSykmelding.personNrPasient, loggingMeta)
-
-        val pdfPayload = createPdfPayload(receivedSykmelding, validationResult, patient)
-
-        val sak = sakClient.findOrCreateSak(receivedSykmelding.sykmelding.pasientAktoerId, receivedSykmelding.msgId,
-                loggingMeta)
-
-        val pdf = pdfgenClient.createPdf(pdfPayload)
-        log.info("PDF generert {}", fields(loggingMeta))
-
-        val journalpostPayload = createJournalpostPayload(receivedSykmelding, sak.id.toString(), pdf, validationResult)
-        val journalpost = dokArkivClient.createJournalpost(journalpostPayload, loggingMeta)
-
-        val registerJournal = RegisterJournal().apply {
-            journalpostKilde = "AS36"
-            messageId = receivedSykmelding.msgId
-            sakId = sak.id.toString()
-            journalpostId = journalpost.journalpostId
-        }
-        producer.send(ProducerRecord(env.journalCreatedTopic, receivedSykmelding.sykmelding.id, registerJournal))
-
-        MELDING_LAGER_I_JOARK.inc()
-        log.info("Melding lagret i Joark med journalpostId {}, {}",
-                journalpost.journalpostId,
-                fields(loggingMeta))
     }
 }
