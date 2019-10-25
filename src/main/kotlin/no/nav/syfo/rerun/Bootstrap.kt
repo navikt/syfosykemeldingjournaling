@@ -1,6 +1,7 @@
 package no.nav.syfo.rerun
 
 import io.ktor.util.KtorExperimentalAPI
+import java.util.Properties
 import no.nav.syfo.Environment
 import no.nav.syfo.VaultCredentials
 import no.nav.syfo.application.ApplicationState
@@ -13,7 +14,6 @@ import no.nav.tjeneste.virksomhet.arbeidsfordeling.v1.binding.ArbeidsfordelingV1
 import no.nav.tjeneste.virksomhet.person.v3.binding.PersonV3
 import org.apache.kafka.clients.consumer.KafkaConsumer
 import org.apache.kafka.clients.producer.KafkaProducer
-import java.util.Properties
 
 @UseExperimental(KtorExperimentalAPI::class)
 fun setupRerunDependencies(journalService: JournalService, personV3: PersonV3, env: Environment, credentials: VaultCredentials, consumerConfig: Properties, applicationState: ApplicationState, producerConfig: Properties) {

@@ -1,6 +1,9 @@
 package no.nav.syfo.rerun.pdf.service
 
 import io.ktor.util.KtorExperimentalAPI
+import java.time.Duration
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 import kotlinx.coroutines.delay
 import net.logstash.logback.argument.StructuredArguments.fields
 import no.nav.syfo.application.ApplicationState
@@ -19,9 +22,6 @@ import org.apache.kafka.clients.consumer.KafkaConsumer
 import org.apache.kafka.clients.producer.KafkaProducer
 import org.apache.kafka.clients.producer.ProducerRecord
 import org.slf4j.LoggerFactory
-import java.time.Duration
-import java.time.LocalDate
-import java.time.format.DateTimeFormatter
 
 @KtorExperimentalAPI
 class RerunPdfGenerationService(
