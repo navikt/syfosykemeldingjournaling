@@ -32,7 +32,7 @@ class RerunPdfGenerationService(
     private val findNAVKontorService: FindNAVKontorService,
     private val kafkaProducer: KafkaProducer<String, ProduceTask>
 ) {
-
+    private val ignorIds = listOf("7e073ab6-ecc1-49a1-a726-7dccb8b5ab23")
     private val log = LoggerFactory.getLogger(RerunPdfGenerationService::class.java)
 
     fun start() {
@@ -65,7 +65,9 @@ class RerunPdfGenerationService(
                 Status.MANUAL_PROCESSING,
                 listOf(RuleInfo("TEKNISK_FEIL", "Teknisk feil, må oppdateres i infotrygd", "", Status.MANUAL_PROCESSING)))
 
-        journalService.onJournalRequest(receivedSykmelding, validationResult, meta)
+        if(!ignorIds.contains(receivedSykmelding.sykmelding.id)) {
+            journalService.onJournalRequest(receivedSykmelding, validationResult, meta)
+        }
 
         val produceTask = ProduceTask().apply {
             messageId = receivedSykmelding.msgId
@@ -87,7 +89,7 @@ class RerunPdfGenerationService(
             metadata = mapOf()
         }
 
-        log.info("Created produceTask, sending to aapen-syfo-oppgave-produserOppgave")
+        log.info("Created produceTask, sending to aapen-syfo-oppgave-produserOppgave, {}", fields(meta))
         kafkaProducer.send(ProducerRecord("aapen-syfo-oppgave-produserOppgave", receivedSykmelding.sykmelding.id, produceTask))
     }
 }
