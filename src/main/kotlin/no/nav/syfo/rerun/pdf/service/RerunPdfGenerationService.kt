@@ -1,8 +1,8 @@
 package no.nav.syfo.rerun.pdf.service
 
 import io.ktor.util.KtorExperimentalAPI
-import kotlinx.coroutines.delay
 import java.time.Duration
+import kotlinx.coroutines.delay
 import net.logstash.logback.argument.StructuredArguments.fields
 import no.nav.syfo.application.ApplicationState
 import no.nav.syfo.createListener

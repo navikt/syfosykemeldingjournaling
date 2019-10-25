@@ -46,5 +46,6 @@ fun createPdfPayload(
         biDiagnoser = receivedSykmelding.sykmelding.medisinskVurdering.biDiagnoser.map { it.toPDFFormat() },
         sykmelding = receivedSykmelding.sykmelding,
         validationResult = validationResult,
-        mottattDato = receivedSykmelding.mottattDato
+        mottattDato = receivedSykmelding.mottattDato,
+        behandlerKontorOrgName = receivedSykmelding.legekontorOrgName
 )

@@ -10,7 +10,8 @@ data class PdfPayload(
     val annenFraversArsakGrunn: List<EnumRepresentation>,
     val sykmelding: Sykmelding,
     val validationResult: ValidationResult,
-    val mottattDato: LocalDateTime
+    val mottattDato: LocalDateTime,
+    val behandlerKontorOrgName: String
 )
 
 data class Pasient(
