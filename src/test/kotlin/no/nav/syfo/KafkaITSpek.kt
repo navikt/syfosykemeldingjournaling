@@ -32,7 +32,8 @@ object KafkaITSpek : Spek({
             dokArkivUrl = "TODO",
             opprettSakUrl = "TODO",
             personV3EndpointURL = "TODO",
-            securityTokenServiceURL = "TODO"
+            securityTokenServiceURL = "TODO",
+            arbeidsfordelingV1EndpointURL = ""
     )
 
     val vaultCredentials = VaultCredentials("unused", "unused")
