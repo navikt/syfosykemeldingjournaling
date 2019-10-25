@@ -37,7 +37,7 @@ import no.nav.syfo.kafka.toProducerConfig
 import no.nav.syfo.kafka.toStreamsConfig
 import no.nav.syfo.model.ReceivedSykmelding
 import no.nav.syfo.model.ValidationResult
-import no.nav.syfo.rerun.pdf.service.RerunPdfGenerationService
+import no.nav.syfo.rerun.setupRerunDependencies
 import no.nav.syfo.sak.avro.RegisterJournal
 import no.nav.syfo.service.JournalService
 import no.nav.syfo.util.LoggingMeta
@@ -110,12 +110,10 @@ fun main() {
 
     val streamProperties = kafkaBaseConfig.toStreamsConfig(env.applicationName, valueSerde = Serdes.String()::class)
     val kafkaStream = createKafkaStream(streamProperties, env)
-
     val journalService = JournalService(env, producer, sakClient, dokArkivClient, pdfgenClient, personV3)
-    val kafkaConsumer = KafkaConsumer<String, String>(consumerConfig)
-    val rerunPdfGenerationService = RerunPdfGenerationService(kafkaConsumer, journalService, applicationState, env.rerunTopicName)
 
-    rerunPdfGenerationService.start()
+    setupRerunDependencies(journalService, personV3, env, credentials, consumerConfig, applicationState, producerConfig)
+
     kafkaStream.start()
 
     launchListeners(env, applicationState, consumerConfig, journalService)

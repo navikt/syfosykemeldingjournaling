@@ -18,7 +18,8 @@ data class Environment(
     val personV3EndpointURL: String = getEnvVar("PERSON_V3_ENDPOINT_URL"),
     val securityTokenServiceURL: String = getEnvVar("SECURITY_TOKEN_SERVICE_URL"),
     val pdfgen: String = getEnvVar("PDF_GEN_URL", "http://syfopdfgen/api/v1/genpdf/syfosm/syfosm"),
-    val rerunTopicName: String = getEnvVar("RERUN_TOPIC_NAME", "privat-syfo-register-rerun-tmp")
+    val rerunTopicName: String = getEnvVar("RERUN_TOPIC_NAME", "privat-syfo-register-rerun-tmp"),
+    val arbeidsfordelingV1EndpointURL: String = getEnvVar("ARBEIDSFORDELING_V1_ENDPOINT_URL")
 ) : KafkaConfig
 
 data class VaultCredentials(

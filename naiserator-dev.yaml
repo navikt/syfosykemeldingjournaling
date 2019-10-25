@@ -44,3 +44,5 @@ spec:
       value: https://wasapp-q1.adeo.no/tpsws/ws/Person/v3
     - name: SECURITY_TOKEN_SERVICE_URL
       value: https://sts-q1.preprod.local/SecurityTokenServiceProvider/
+    - name: ARBEIDSFORDELING_V1_ENDPOINT_URL
+      value: https://app-q1.adeo.no/norg2/ws/Arbeidsfordeling/v1
