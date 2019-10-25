@@ -88,6 +88,6 @@ class RerunPdfGenerationService(
         }
 
         log.info("Created produceTask, sending to aapen-syfo-oppgave-produserOppgave")
-        kafkaProducer.send(ProducerRecord("aapen-syfo-oppgave-produserOppgave", produceTask))
+        kafkaProducer.send(ProducerRecord("aapen-syfo-oppgave-produserOppgave", receivedSykmelding.sykmelding.id, produceTask))
     }
 }
