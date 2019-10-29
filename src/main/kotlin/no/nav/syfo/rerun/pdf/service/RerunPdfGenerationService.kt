@@ -65,7 +65,7 @@ class RerunPdfGenerationService(
                 Status.MANUAL_PROCESSING,
                 listOf(RuleInfo("TEKNISK_FEIL", "Teknisk feil, må oppdateres i infotrygd", "", Status.MANUAL_PROCESSING)))
 
-        if(!ignorIds.contains(receivedSykmelding.sykmelding.id)) {
+        if (!ignorIds.contains(receivedSykmelding.sykmelding.id)) {
             journalService.onJournalRequest(receivedSykmelding, validationResult, meta)
         }
 

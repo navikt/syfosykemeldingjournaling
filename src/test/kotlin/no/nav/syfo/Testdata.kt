@@ -28,7 +28,7 @@ import no.nav.syfo.model.SporsmalSvar
 import no.nav.syfo.model.Sykmelding
 import no.nav.syfo.sm.Diagnosekoder
 
-fun Diagnosekoder.DiagnosekodeType.toDiagnose() = Diagnose(system = oid, kode = code)
+fun Diagnosekoder.DiagnosekodeType.toDiagnose() = Diagnose(system = oid, kode = code, tekst = text)
 
 fun generateSykmelding(
     id: String = UUID.randomUUID().toString(),

@@ -12,7 +12,6 @@ import no.nav.syfo.model.Pasient
 import no.nav.syfo.model.PdfPayload
 import no.nav.syfo.model.ReceivedSykmelding
 import no.nav.syfo.model.ValidationResult
-import no.nav.syfo.model.toPDFFormat
 import no.nav.tjeneste.virksomhet.person.v3.informasjon.Person
 
 @KtorExperimentalAPI
@@ -41,9 +40,6 @@ fun createPdfPayload(
                 personnummer = receivedSykmelding.personNrPasient,
                 tlfNummer = receivedSykmelding.tlfPasient
         ),
-        annenFraversArsakGrunn = receivedSykmelding.sykmelding.medisinskVurdering.annenFraversArsak?.grunn?.map { it.toPDFFormat() } ?: listOf(),
-        hovedDiagnose = receivedSykmelding.sykmelding.medisinskVurdering.hovedDiagnose?.toPDFFormat(),
-        biDiagnoser = receivedSykmelding.sykmelding.medisinskVurdering.biDiagnoser.map { it.toPDFFormat() },
         sykmelding = receivedSykmelding.sykmelding,
         validationResult = validationResult,
         mottattDato = receivedSykmelding.mottattDato,
