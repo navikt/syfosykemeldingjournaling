@@ -15,6 +15,7 @@ import no.nav.syfo.model.ValidationResult
 import no.nav.syfo.sak.avro.RegisterJournal
 import no.nav.syfo.util.LoggingMeta
 import no.nav.syfo.util.wrapExceptions
+import no.nav.tjeneste.virksomhet.person.v3.binding.HentPersonPersonIkkeFunnet
 import no.nav.tjeneste.virksomhet.person.v3.binding.PersonV3
 import org.apache.kafka.clients.producer.KafkaProducer
 import org.apache.kafka.clients.producer.ProducerRecord
@@ -24,8 +25,10 @@ class JournalService(private val env: Environment, private val producer: KafkaPr
     suspend fun onJournalRequest(receivedSykmelding: ReceivedSykmelding, validationResult: ValidationResult, loggingMeta: LoggingMeta) {
         wrapExceptions(loggingMeta) {
             log.info("Mottok en sykmelding, prover aa lagre i Joark {}", StructuredArguments.fields(loggingMeta))
-                val patient = fetchPerson(personV3, receivedSykmelding.personNrPasient, loggingMeta)
 
+            try{
+
+                val patient = fetchPerson(personV3, receivedSykmelding.personNrPasient, loggingMeta)
                 val pdfPayload = createPdfPayload(receivedSykmelding, validationResult, patient)
 
                 val sak = sakClient.findOrCreateSak(receivedSykmelding.sykmelding.pasientAktoerId, receivedSykmelding.msgId,
@@ -44,11 +47,15 @@ class JournalService(private val env: Environment, private val producer: KafkaPr
                     journalpostId = journalpost.journalpostId
                 }
                 producer.send(ProducerRecord(env.journalCreatedTopic, receivedSykmelding.sykmelding.id, registerJournal))
-
                 MELDING_LAGER_I_JOARK.inc()
                 log.info("Melding lagret i Joark med journalpostId {}, {}",
                         journalpost.journalpostId,
                         StructuredArguments.fields(loggingMeta))
+
+            } catch (ex: HentPersonPersonIkkeFunnet) {
+                log.info("Person not found, returning")
+                return@wrapExceptions
+            }
         }
     }
 }
