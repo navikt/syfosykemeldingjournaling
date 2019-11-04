@@ -15,6 +15,7 @@ import no.nav.syfo.model.ValidationResult
 import no.nav.syfo.sak.avro.RegisterJournal
 import no.nav.syfo.util.LoggingMeta
 import no.nav.syfo.util.wrapExceptions
+import no.nav.tjeneste.virksomhet.person.v3.binding.HentPersonPersonIkkeFunnet
 import no.nav.tjeneste.virksomhet.person.v3.binding.PersonV3
 import org.apache.kafka.clients.producer.KafkaProducer
 import org.apache.kafka.clients.producer.ProducerRecord
@@ -23,6 +24,7 @@ import org.apache.kafka.clients.producer.ProducerRecord
 class JournalService(private val env: Environment, private val producer: KafkaProducer<String, RegisterJournal>, private val sakClient: SakClient, private val dokArkivClient: DokArkivClient, private val pdfgenClient: PdfgenClient, private val personV3: PersonV3) {
     suspend fun onJournalRequest(receivedSykmelding: ReceivedSykmelding, validationResult: ValidationResult, loggingMeta: LoggingMeta) {
         wrapExceptions(loggingMeta) {
+            try {
             log.info("Mottok en sykmelding, prover aa lagre i Joark {}", StructuredArguments.fields(loggingMeta))
 
             val patient = fetchPerson(personV3, receivedSykmelding.personNrPasient, loggingMeta)
@@ -49,6 +51,8 @@ class JournalService(private val env: Environment, private val producer: KafkaPr
             log.info("Melding lagret i Joark med journalpostId {}, {}",
                     journalpost.journalpostId,
                     StructuredArguments.fields(loggingMeta))
+            } catch (HentPersonPersonIkkeFunnet: HentPersonPersonIkkeFunnet) {
+            }
         }
     }
 }
