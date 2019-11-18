@@ -77,7 +77,7 @@ fun main() {
             env,
             applicationState)
 
-    val applicationServer = ApplicationServer(applicationEngine)
+    val applicationServer = ApplicationServer(applicationEngine, applicationState)
     applicationServer.start()
 
     DefaultExports.initialize()
@@ -117,8 +117,6 @@ fun main() {
     kafkaStream.start()
 
     launchListeners(env, applicationState, consumerConfig, journalService)
-
-    applicationState.ready = true
 }
 
 fun createKafkaStream(streamProperties: Properties, env: Environment): KafkaStreams {
@@ -171,29 +169,28 @@ fun createListener(applicationState: ApplicationState, action: suspend Coroutine
 
 @KtorExperimentalAPI
 fun launchListeners(
-    env: Environment,
-    applicationState: ApplicationState,
-    consumerProperties: Properties,
-    journalService: JournalService
+        env: Environment,
+        applicationState: ApplicationState,
+        consumerProperties: Properties,
+        journalService: JournalService
 ) {
-            createListener(applicationState) {
-                val kafkaconsumer = KafkaConsumer<String, String>(consumerProperties)
-                kafkaconsumer.subscribe(listOf(env.sm2013SakTopic))
+    createListener(applicationState) {
+        val kafkaconsumer = KafkaConsumer<String, String>(consumerProperties)
+        kafkaconsumer.subscribe(listOf(env.sm2013SakTopic))
+        applicationState.ready = true
 
-                blockingApplicationLogic(
-                        kafkaconsumer,
-                        applicationState,
-                        journalService)
-            }
-
-    applicationState.alive = true
+        blockingApplicationLogic(
+                kafkaconsumer,
+                applicationState,
+                journalService)
+    }
 }
 
 @KtorExperimentalAPI
 suspend fun blockingApplicationLogic(
-    consumer: KafkaConsumer<String, String>,
-    applicationState: ApplicationState,
-    journalService: JournalService
+        consumer: KafkaConsumer<String, String>,
+        applicationState: ApplicationState,
+        journalService: JournalService
 ) {
     while (applicationState.ready) {
         consumer.poll(Duration.ofMillis(0)).forEach {
