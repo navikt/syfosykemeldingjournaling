@@ -116,8 +116,6 @@ fun main() {
 
     kafkaStream.start()
 
-    applicationState.ready = true
-
     launchListeners(env, applicationState, consumerConfig, journalService)
 }
 
@@ -171,10 +169,10 @@ fun createListener(applicationState: ApplicationState, action: suspend Coroutine
 
 @KtorExperimentalAPI
 fun launchListeners(
-    env: Environment,
-    applicationState: ApplicationState,
-    consumerProperties: Properties,
-    journalService: JournalService
+        env: Environment,
+        applicationState: ApplicationState,
+        consumerProperties: Properties,
+        journalService: JournalService
 ) {
     createListener(applicationState) {
         val kafkaconsumer = KafkaConsumer<String, String>(consumerProperties)
@@ -189,11 +187,12 @@ fun launchListeners(
 
 @KtorExperimentalAPI
 suspend fun blockingApplicationLogic(
-    consumer: KafkaConsumer<String, String>,
-    applicationState: ApplicationState,
-    journalService: JournalService
+        consumer: KafkaConsumer<String, String>,
+        applicationState: ApplicationState,
+        journalService: JournalService
 ) {
-    while (applicationState.ready) {
+    while (applicationState.alive) {
+        applicationState.ready = true
         consumer.poll(Duration.ofMillis(0)).forEach {
             val behandlingsUtfallReceivedSykmelding: BehandlingsUtfallReceivedSykmelding =
                     objectMapper.readValue(it.value())
