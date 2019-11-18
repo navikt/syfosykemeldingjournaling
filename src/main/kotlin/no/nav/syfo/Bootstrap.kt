@@ -77,7 +77,7 @@ fun main() {
             env,
             applicationState)
 
-    val applicationServer = ApplicationServer(applicationEngine)
+    val applicationServer = ApplicationServer(applicationEngine, applicationState)
     applicationServer.start()
 
     DefaultExports.initialize()
@@ -116,9 +116,9 @@ fun main() {
 
     kafkaStream.start()
 
-    launchListeners(env, applicationState, consumerConfig, journalService)
-
     applicationState.ready = true
+
+    launchListeners(env, applicationState, consumerConfig, journalService)
 }
 
 fun createKafkaStream(streamProperties: Properties, env: Environment): KafkaStreams {
@@ -176,17 +176,15 @@ fun launchListeners(
     consumerProperties: Properties,
     journalService: JournalService
 ) {
-            createListener(applicationState) {
-                val kafkaconsumer = KafkaConsumer<String, String>(consumerProperties)
-                kafkaconsumer.subscribe(listOf(env.sm2013SakTopic))
+    createListener(applicationState) {
+        val kafkaconsumer = KafkaConsumer<String, String>(consumerProperties)
+        kafkaconsumer.subscribe(listOf(env.sm2013SakTopic))
 
-                blockingApplicationLogic(
-                        kafkaconsumer,
-                        applicationState,
-                        journalService)
-            }
-
-    applicationState.alive = true
+        blockingApplicationLogic(
+                kafkaconsumer,
+                applicationState,
+                journalService)
+    }
 }
 
 @KtorExperimentalAPI
