@@ -177,6 +177,7 @@ fun launchListeners(
     createListener(applicationState) {
         val kafkaconsumer = KafkaConsumer<String, String>(consumerProperties)
         kafkaconsumer.subscribe(listOf(env.sm2013SakTopic))
+        applicationState.ready = true
 
         blockingApplicationLogic(
                 kafkaconsumer,
@@ -191,8 +192,7 @@ suspend fun blockingApplicationLogic(
         applicationState: ApplicationState,
         journalService: JournalService
 ) {
-    while (applicationState.alive) {
-        applicationState.ready = true
+    while (applicationState.ready) {
         consumer.poll(Duration.ofMillis(0)).forEach {
             val behandlingsUtfallReceivedSykmelding: BehandlingsUtfallReceivedSykmelding =
                     objectMapper.readValue(it.value())
