@@ -109,14 +109,11 @@ fun main() {
     val producer = KafkaProducer<String, RegisterJournal>(producerConfig)
 
     val streamProperties = kafkaBaseConfig.toStreamsConfig(env.applicationName, valueSerde = Serdes.String()::class)
-    val kafkaStream = createKafkaStream(streamProperties, env)
     val journalService = JournalService(env, producer, sakClient, dokArkivClient, pdfgenClient, personV3)
 
     setupRerunDependencies(journalService, personV3, env, credentials, consumerConfig, applicationState, producerConfig)
 
-    kafkaStream.start()
-
-    launchListeners(env, applicationState, consumerConfig, journalService)
+    launchListeners(env, applicationState, consumerConfig, journalService, streamProperties)
 }
 
 fun createKafkaStream(streamProperties: Properties, env: Environment): KafkaStreams {
@@ -169,12 +166,16 @@ fun createListener(applicationState: ApplicationState, action: suspend Coroutine
 
 @KtorExperimentalAPI
 fun launchListeners(
-        env: Environment,
-        applicationState: ApplicationState,
-        consumerProperties: Properties,
-        journalService: JournalService
+    env: Environment,
+    applicationState: ApplicationState,
+    consumerProperties: Properties,
+    journalService: JournalService,
+    streamProperties: Properties
 ) {
     createListener(applicationState) {
+        val kafkaStream = createKafkaStream(streamProperties, env)
+        kafkaStream.start()
+
         val kafkaconsumer = KafkaConsumer<String, String>(consumerProperties)
         kafkaconsumer.subscribe(listOf(env.sm2013SakTopic))
         applicationState.ready = true
@@ -188,9 +189,9 @@ fun launchListeners(
 
 @KtorExperimentalAPI
 suspend fun blockingApplicationLogic(
-        consumer: KafkaConsumer<String, String>,
-        applicationState: ApplicationState,
-        journalService: JournalService
+    consumer: KafkaConsumer<String, String>,
+    applicationState: ApplicationState,
+    journalService: JournalService
 ) {
     while (applicationState.ready) {
         consumer.poll(Duration.ofMillis(0)).forEach {
