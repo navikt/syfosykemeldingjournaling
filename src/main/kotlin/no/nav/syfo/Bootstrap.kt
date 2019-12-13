@@ -174,11 +174,22 @@ fun launchListeners(
 ) {
     createListener(applicationState) {
         val kafkaStream = createKafkaStream(streamProperties, env)
+        log.info("Made it to kafkaStream.start()")
+        kafkaStream.setUncaughtExceptionHandler { t, e ->
+            log.error("Kafka threw an exception we did not expect", e)
+        }
+
         kafkaStream.start()
 
         val kafkaconsumer = KafkaConsumer<String, String>(consumerProperties)
         kafkaconsumer.subscribe(listOf(env.sm2013SakTopic))
         applicationState.ready = true
+
+        Runtime.getRuntime().addShutdownHook(Thread {
+            log.info("Closing kafka streams and conssumer")
+            kafkaconsumer.close()
+            kafkaStream.close()
+        })
 
         blockingApplicationLogic(
                 kafkaconsumer,
