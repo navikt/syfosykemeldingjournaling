@@ -201,7 +201,7 @@ suspend fun blockingApplicationLogic(
     journalService: JournalService
 ) {
     while (applicationState.ready) {
-        consumer.poll(Duration.ofMillis(100)).forEach {
+        consumer.poll(Duration.ofMillis(1000)).forEach {
             log.info("Offset for topic: privat-syfo-sm2013-sak, offset: ${it.offset()}")
             val behandlingsUtfallReceivedSykmelding: BehandlingsUtfallReceivedSykmelding =
                     objectMapper.readValue(it.value())
