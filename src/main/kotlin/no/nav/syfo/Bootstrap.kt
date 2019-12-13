@@ -185,11 +185,7 @@ fun launchListeners(
         kafkaconsumer.subscribe(listOf(env.sm2013SakTopic))
         applicationState.ready = true
 
-        Runtime.getRuntime().addShutdownHook(Thread {
-            log.info("Closing kafka streams and conssumer")
-            kafkaconsumer.close()
-            kafkaStream.close()
-        })
+        log.info("Made it to applicationState.ready = true")
 
         blockingApplicationLogic(
                 kafkaconsumer,
