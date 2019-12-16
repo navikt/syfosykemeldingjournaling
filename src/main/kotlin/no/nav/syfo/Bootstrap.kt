@@ -23,7 +23,6 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import net.logstash.logback.argument.StructuredArguments.fields
-import net.logstash.logback.argument.StructuredArguments.keyValue
 import no.nav.syfo.application.ApplicationServer
 import no.nav.syfo.application.ApplicationState
 import no.nav.syfo.application.createApplicationEngine
@@ -127,14 +126,12 @@ fun createKafkaStream(streamProperties: Properties, env: Environment): KafkaStre
                     env.sm2013InvalidHandlingTopic
             ), Consumed.with(Serdes.String(), Serdes.String())
     )
-            .peek { key, _ -> log.info("Receiving sm with key {}", keyValue("key", key)) }
 
     val behandlingsUtfallStream = streamsBuilder.stream<String, String>(
             listOf(
                     env.sm2013BehandlingsUtfallTopic
             ), Consumed.with(Serdes.String(), Serdes.String())
     )
-            .peek { key, _ -> log.info("Receiving behandlingsutfall with key {}", keyValue("key", key)) }
 
     val joinWindow = JoinWindows.of(TimeUnit.DAYS.toMillis(14))
             .until(TimeUnit.DAYS.toMillis(31))
@@ -151,7 +148,6 @@ fun createKafkaStream(streamProperties: Properties, env: Environment): KafkaStre
                 )
         )
     }, joinWindow, joined)
-            .peek { key, _ -> log.info("Joined behandlingsutfall and sm with key {}", keyValue("key", key)) }
             .to(env.sm2013SakTopic, Produced.with(Serdes.String(), Serdes.String()))
 
     return KafkaStreams(streamsBuilder.build(), streamProperties)
