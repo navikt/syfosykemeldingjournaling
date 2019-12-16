@@ -5,7 +5,7 @@
     </appender>
 
     <logger name="no.nav" level="INFO"/>
-    <logger name="org.apache.kafka.clients.consumer.ConsumerConfig" level="ERROR"/>
+    <logger name="org.apache.kafka.clients.consumer.ConsumerConfig" level="INFO"/>
 
     <root level="INFO">
         <appender-ref ref="stdout_json" />
