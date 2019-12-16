@@ -37,7 +37,6 @@ import no.nav.syfo.kafka.toProducerConfig
 import no.nav.syfo.kafka.toStreamsConfig
 import no.nav.syfo.model.ReceivedSykmelding
 import no.nav.syfo.model.ValidationResult
-import no.nav.syfo.rerun.setupRerunDependencies
 import no.nav.syfo.sak.avro.RegisterJournal
 import no.nav.syfo.service.JournalService
 import no.nav.syfo.util.LoggingMeta
@@ -111,7 +110,7 @@ fun main() {
     val streamProperties = kafkaBaseConfig.toStreamsConfig(env.applicationName, valueSerde = Serdes.String()::class)
     val journalService = JournalService(env, producer, sakClient, dokArkivClient, pdfgenClient, personV3)
 
-    setupRerunDependencies(journalService, personV3, env, credentials, consumerConfig, applicationState, producerConfig)
+    // setupRerunDependencies(journalService, personV3, env, credentials, consumerConfig, applicationState, producerConfig)
 
     launchListeners(env, applicationState, consumerConfig, journalService, streamProperties)
 }
@@ -174,30 +173,12 @@ fun launchListeners(
 ) {
     createListener(applicationState) {
         val kafkaStream = createKafkaStream(streamProperties, env)
-        log.info("Made it to kafkaStream.start()")
-
-        kafkaStream.setUncaughtExceptionHandler { _, err ->
-            log.error("Caught exception in stream: ${err.message}", err)
-            kafkaStream.close()
-        }
 
         kafkaStream.start()
-
-        kafkaStream.setStateListener { newState, oldState ->
-            log.info("From state={} to state={}", oldState, newState)
-
-            if (newState == KafkaStreams.State.ERROR) {
-                // if the stream has died there is no reason to keep spinning
-                log.warn("closing stream because it went into error state")
-                kafkaStream.close()
-            }
-        }
 
         val kafkaconsumer = KafkaConsumer<String, String>(consumerProperties)
         kafkaconsumer.subscribe(listOf(env.sm2013SakTopic))
         applicationState.ready = true
-
-        log.info("Made it to applicationState.ready = true")
 
         blockingApplicationLogic(
                 kafkaconsumer,
@@ -213,7 +194,7 @@ suspend fun blockingApplicationLogic(
     journalService: JournalService
 ) {
     while (applicationState.ready) {
-        consumer.poll(Duration.ofMillis(1000)).forEach {
+        consumer.poll(Duration.ofMillis(100)).forEach {
             log.info("Offset for topic: privat-syfo-sm2013-sak, offset: ${it.offset()}")
             val behandlingsUtfallReceivedSykmelding: BehandlingsUtfallReceivedSykmelding =
                     objectMapper.readValue(it.value())
