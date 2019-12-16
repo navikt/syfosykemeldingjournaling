@@ -191,8 +191,6 @@ fun launchListeners(
             }
         }
 
-        kafkaStream.close()
-
         kafkaStream.start()
 
         val kafkaconsumer = KafkaConsumer<String, String>(consumerProperties)
@@ -200,6 +198,8 @@ fun launchListeners(
         applicationState.ready = true
 
         log.info("Made it to applicationState.ready = true")
+
+        kafkaStream.close()
 
         blockingApplicationLogic(
                 kafkaconsumer,
