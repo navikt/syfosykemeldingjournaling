@@ -191,6 +191,8 @@ fun launchListeners(
             }
         }
 
+        kafkaStream.close()
+
         kafkaStream.start()
 
         val kafkaconsumer = KafkaConsumer<String, String>(consumerProperties)
