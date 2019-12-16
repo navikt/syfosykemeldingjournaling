@@ -33,7 +33,7 @@ val navArbeidsfordelingv1Version = "1.2019.07.11-06.47-b55f47790a9d"
 
 plugins {
     java
-    kotlin("jvm") version "1.3.60"
+    kotlin("jvm") version "1.3.61"
     id("org.jmailen.kotlinter") version "2.1.0"
     id("com.diffplug.gradle.spotless") version "3.23.0"
     id("com.github.johnrengelman.shadow") version "5.0.0"

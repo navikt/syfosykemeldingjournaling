@@ -15,7 +15,7 @@ import no.nav.tjeneste.virksomhet.person.v3.binding.PersonV3
 import org.apache.kafka.clients.consumer.KafkaConsumer
 import org.apache.kafka.clients.producer.KafkaProducer
 
-@UseExperimental(KtorExperimentalAPI::class)
+@KtorExperimentalAPI
 fun setupRerunDependencies(journalService: JournalService, personV3: PersonV3, env: Environment, credentials: VaultCredentials, consumerConfig: Properties, applicationState: ApplicationState, producerConfig: Properties) {
     val arbeidsfordelingV1 = createPort<ArbeidsfordelingV1>(env.arbeidsfordelingV1EndpointURL) {
         port { withSTS(credentials.serviceuserUsername, credentials.serviceuserPassword, env.securityTokenServiceURL) }
