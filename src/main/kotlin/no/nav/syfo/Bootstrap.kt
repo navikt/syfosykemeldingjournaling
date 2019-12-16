@@ -182,6 +182,7 @@ fun launchListeners(
         kafkaStream.setUncaughtExceptionHandler { _, err ->
             log.error("Caught exception in stream: ${err.message}", err)
             kafkaStream.close()
+            applicationState.alive = false
         }
 
         kafkaStream.setStateListener { newState, oldState ->
