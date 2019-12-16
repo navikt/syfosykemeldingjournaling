@@ -181,6 +181,8 @@ fun launchListeners(
             kafkaStream.close()
         }
 
+        kafkaStream.start()
+
         kafkaStream.setStateListener { newState, oldState ->
             log.info("From state={} to state={}", oldState, newState)
 
@@ -191,15 +193,11 @@ fun launchListeners(
             }
         }
 
-        kafkaStream.start()
-
         val kafkaconsumer = KafkaConsumer<String, String>(consumerProperties)
         kafkaconsumer.subscribe(listOf(env.sm2013SakTopic))
         applicationState.ready = true
 
         log.info("Made it to applicationState.ready = true")
-
-        kafkaStream.close()
 
         blockingApplicationLogic(
                 kafkaconsumer,
