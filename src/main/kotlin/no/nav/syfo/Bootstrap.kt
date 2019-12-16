@@ -178,6 +178,17 @@ fun launchListeners(
     createListener(applicationState) {
         val kafkaStream = createKafkaStream(streamProperties, env)
 
+        kafkaStream.setStateListener { newState, oldState ->
+            log.info("From state={} to state={}", oldState, newState)
+
+            if (newState == KafkaStreams.State.ERROR) {
+                // if the stream has died there is no reason to keep spinning
+                log.warn("closing stream because it went into error state")
+                kafkaStream.close()
+                applicationState.alive = false
+            }
+        }
+
         kafkaStream.start()
 
         val kafkaconsumer = KafkaConsumer<String, String>(consumerProperties)
