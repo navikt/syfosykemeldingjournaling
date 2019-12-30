@@ -112,10 +112,7 @@ fun main() {
 
     // setupRerunDependencies(journalService, personV3, env, credentials, consumerConfig, applicationState, producerConfig)
 
-    // launchListeners(env, applicationState, consumerConfig, journalService, streamProperties)
-
-    // skal fjernes!
-    applicationState.ready = true
+    launchListeners(env, applicationState, consumerConfig, journalService, streamProperties)
 }
 
 fun createKafkaStream(streamProperties: Properties, env: Environment): KafkaStreams {
