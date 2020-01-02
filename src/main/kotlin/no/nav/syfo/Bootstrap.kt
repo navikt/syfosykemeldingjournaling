@@ -37,6 +37,7 @@ import no.nav.syfo.kafka.toProducerConfig
 import no.nav.syfo.kafka.toStreamsConfig
 import no.nav.syfo.model.ReceivedSykmelding
 import no.nav.syfo.model.ValidationResult
+import no.nav.syfo.rerun.setupRerunDependencies
 import no.nav.syfo.sak.avro.RegisterJournal
 import no.nav.syfo.service.JournalService
 import no.nav.syfo.util.LoggingMeta
@@ -110,12 +111,9 @@ fun main() {
     val streamProperties = kafkaBaseConfig.toStreamsConfig(env.applicationName, valueSerde = Serdes.String()::class)
     val journalService = JournalService(env, producer, sakClient, dokArkivClient, pdfgenClient, personV3)
 
-    // setupRerunDependencies(journalService, personV3, env, credentials, consumerConfig, applicationState, producerConfig)
+    setupRerunDependencies(journalService, personV3, env, credentials, consumerConfig, applicationState, producerConfig)
 
-    // launchListeners(env, applicationState, consumerConfig, journalService, streamProperties)
-
-    // skal fjernes!
-    applicationState.ready = true
+    launchListeners(env, applicationState, consumerConfig, journalService, streamProperties)
 }
 
 fun createKafkaStream(streamProperties: Properties, env: Environment): KafkaStreams {
