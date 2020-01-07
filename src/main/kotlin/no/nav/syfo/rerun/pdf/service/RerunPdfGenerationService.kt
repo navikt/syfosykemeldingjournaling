@@ -9,7 +9,6 @@ import net.logstash.logback.argument.StructuredArguments.fields
 import no.nav.syfo.application.ApplicationState
 import no.nav.syfo.createListener
 import no.nav.syfo.model.ReceivedSykmelding
-import no.nav.syfo.model.RuleInfo
 import no.nav.syfo.model.Status
 import no.nav.syfo.model.ValidationResult
 import no.nav.syfo.objectMapper
@@ -22,6 +21,8 @@ import org.apache.kafka.clients.consumer.KafkaConsumer
 import org.apache.kafka.clients.producer.KafkaProducer
 import org.apache.kafka.clients.producer.ProducerRecord
 import org.slf4j.LoggerFactory
+
+data class RerunKafkaMessage(val receivedSykmelding: ReceivedSykmelding, val validationResult: ValidationResult)
 
 @KtorExperimentalAPI
 class RerunPdfGenerationService(
@@ -45,51 +46,51 @@ class RerunPdfGenerationService(
     private suspend fun subscribeAndCreatePDF() {
         while (applicationState.alive) {
             kafkaConsumer.poll(Duration.ofMillis(0)).forEach {
-                handleReceivedSykmelding(objectMapper.readValue(it.value(), ReceivedSykmelding::class.java))
+                handleReceivedSykmelding(objectMapper.readValue(it.value(), RerunKafkaMessage::class.java))
             }
             delay(100)
         }
     }
 
-    private suspend fun handleReceivedSykmelding(receivedSykmelding: ReceivedSykmelding) {
-        val meta = LoggingMeta(receivedSykmelding.navLogId,
-                receivedSykmelding.legekontorOrgNr,
-                receivedSykmelding.msgId,
-                receivedSykmelding.sykmelding.id)
+    private suspend fun handleReceivedSykmelding(rerunKafkaMessage: RerunKafkaMessage) {
+        val meta = LoggingMeta(rerunKafkaMessage.receivedSykmelding.navLogId,
+                rerunKafkaMessage.receivedSykmelding.legekontorOrgNr,
+                rerunKafkaMessage.receivedSykmelding.msgId,
+                rerunKafkaMessage.receivedSykmelding.sykmelding.id)
 
         log.info("Received sykmelding from rerun-topic, {}", fields(meta))
 
-        val navKontorNr = findNAVKontorService.finnBehandlendeEnhet(receivedSykmelding, meta)
+        val navKontorNr = findNAVKontorService.finnBehandlendeEnhet(rerunKafkaMessage.receivedSykmelding, meta)
 
-        val validationResult = ValidationResult(
-                Status.MANUAL_PROCESSING,
-                listOf(RuleInfo("TEKNISK_FEIL", "Teknisk feil, må oppdateres i infotrygd", "", Status.MANUAL_PROCESSING)))
+        val validationResult = rerunKafkaMessage.validationResult
 
-        if (!ignorIds.contains(receivedSykmelding.sykmelding.id)) {
-            journalService.onJournalRequest(receivedSykmelding, validationResult, meta)
+        if (!ignorIds.contains(rerunKafkaMessage.receivedSykmelding.sykmelding.id)) {
+            journalService.onJournalRequest(rerunKafkaMessage.receivedSykmelding, validationResult, meta)
         }
 
-        val produceTask = ProduceTask().apply {
-            messageId = receivedSykmelding.msgId
-            aktoerId = receivedSykmelding.sykmelding.pasientAktoerId
-            tildeltEnhetsnr = navKontorNr
-            opprettetAvEnhetsnr = "9999"
-            behandlesAvApplikasjon = "FS22" // Gosys
-            orgnr = receivedSykmelding.legekontorOrgNr ?: ""
-            beskrivelse = "Manuell behandling av sykmelding grunnet følgende regler: ${validationResult.ruleHits.joinToString(", ", "(", ")") { it.messageForSender }}"
-            temagruppe = "ANY"
-            tema = "SYM"
-            behandlingstema = "ANY"
-            oppgavetype = "BEH_EL_SYM"
-            behandlingstype = "ANY"
-            mappeId = 1
-            aktivDato = DateTimeFormatter.ISO_DATE.format(LocalDate.now())
-            fristFerdigstillelse = DateTimeFormatter.ISO_DATE.format(LocalDate.now())
-            prioritet = PrioritetType.NORM
-            metadata = mapOf()
-        }
+        if (validationResult.status == Status.MANUAL_PROCESSING) {
+            val produceTask = ProduceTask().apply {
+                messageId = rerunKafkaMessage.receivedSykmelding.msgId
+                aktoerId = rerunKafkaMessage.receivedSykmelding.sykmelding.pasientAktoerId
+                tildeltEnhetsnr = navKontorNr
+                opprettetAvEnhetsnr = "9999"
+                behandlesAvApplikasjon = "FS22" // Gosys
+                orgnr = rerunKafkaMessage.receivedSykmelding.legekontorOrgNr ?: ""
+                beskrivelse = "Manuell behandling av sykmelding grunnet følgende regler: ${validationResult.ruleHits.joinToString(", ", "(", ")") { it.messageForSender }}"
+                temagruppe = "ANY"
+                tema = "SYM"
+                behandlingstema = "ANY"
+                oppgavetype = "BEH_EL_SYM"
+                behandlingstype = "ANY"
+                mappeId = 1
+                aktivDato = DateTimeFormatter.ISO_DATE.format(LocalDate.now())
+                fristFerdigstillelse = DateTimeFormatter.ISO_DATE.format(LocalDate.now())
+                prioritet = PrioritetType.NORM
+                metadata = mapOf()
+            }
 
-        log.info("Created produceTask, sending to aapen-syfo-oppgave-produserOppgave, {}", fields(meta))
-        kafkaProducer.send(ProducerRecord("aapen-syfo-oppgave-produserOppgave", receivedSykmelding.sykmelding.id, produceTask))
+            log.info("Created produceTask, sending to aapen-syfo-oppgave-produserOppgave, {}", fields(meta))
+            kafkaProducer.send(ProducerRecord("aapen-syfo-oppgave-produserOppgave", rerunKafkaMessage.receivedSykmelding.sykmelding.id, produceTask))
+        }
     }
 }
