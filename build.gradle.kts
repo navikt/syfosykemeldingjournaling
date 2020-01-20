@@ -6,16 +6,16 @@ group = "no.nav.syfo"
 version = "1.0.0"
 
 val confluentVersion = "5.3.1"
-val coroutinesVersion = "1.2.2"
+val coroutinesVersion = "1.3.3"
 val jacksonVersion = "2.9.8"
 val kafkaVersion = "2.4.0"
 val kafkaEmbeddedVersion = "2.3.0"
 val kluentVersion = "1.51"
-val ktorVersion = "1.2.6"
+val ktorVersion = "1.3.0"
 val logstashLogbackEncoder = "6.1"
 val logbackVersion = "1.2.3"
 val prometheusVersion = "0.6.0"
-val smCommonVersion = "1.7bf5e6f"
+val smCommonVersion = "1.84cb553"
 val spekVersion = "2.0.8"
 val syfosmoppgaveSchemasVersion = "785e8a93a3b881e89862035abe539c795c1222dd"
 val junitPlatformLauncher = "1.4.2"
@@ -47,7 +47,7 @@ repositories {
     jcenter()
     maven(url = "https://dl.bintray.com/kotlin/ktor")
     maven(url = "https://dl.bintray.com/spekframework/spek-dev")
-    maven(url = "http://packages.confluent.io/maven/")
+    maven(url = "https://packages.confluent.io/maven/")
     maven(url = "https://kotlin.bintray.com/kotlinx")
     maven {
         url = uri("https://maven.pkg.github.com/navikt/syfosm-common")
