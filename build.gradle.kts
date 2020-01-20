@@ -6,7 +6,7 @@ group = "no.nav.syfo"
 version = "1.0.0"
 
 val confluentVersion = "5.3.1"
-val coroutinesVersion = "1.2.2"
+val coroutinesVersion = "1.3.3"
 val jacksonVersion = "2.9.8"
 val kafkaVersion = "2.4.0"
 val kafkaEmbeddedVersion = "2.3.0"

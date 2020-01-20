@@ -2,8 +2,6 @@ package no.nav.syfo.client
 
 import io.ktor.client.HttpClient
 import io.ktor.client.request.get
-import io.ktor.client.statement.HttpStatement
-import io.ktor.client.statement.readBytes
 import io.ktor.http.ContentType
 import io.ktor.http.HttpMethod
 import io.ktor.http.contentType
@@ -21,11 +19,11 @@ class PdfgenClient constructor(
     private val httpClient: HttpClient
 ) {
     suspend fun createPdf(payload: PdfPayload): ByteArray = retry("pdfgen") {
-        httpClient.get<HttpStatement>(url) {
+        httpClient.get<ByteArray>(url) {
             contentType(ContentType.Application.Json)
             method = HttpMethod.Post
             body = payload
-        }.execute().call.response.readBytes()
+        }
     }
 }
 
