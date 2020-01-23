@@ -32,7 +32,7 @@ spec:
       memory: 1536Mi
     requests:
       cpu: 500m
-      memory: 768Mi
+      memory: 1024Mi
   vault:
     enabled: true
   env:
