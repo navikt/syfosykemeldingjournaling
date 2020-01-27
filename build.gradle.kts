@@ -8,7 +8,7 @@ version = "1.0.0"
 val confluentVersion = "5.3.1"
 val coroutinesVersion = "1.3.3"
 val jacksonVersion = "2.9.8"
-val kafkaVersion = "2.4.0"
+val kafkaVersion = "2.3.1"
 val kafkaEmbeddedVersion = "2.3.0"
 val kluentVersion = "1.51"
 val ktorVersion = "1.3.0"
@@ -78,7 +78,7 @@ dependencies {
     implementation("net.logstash.logback:logstash-logback-encoder:$logstashLogbackEncoder")
 
     implementation("io.confluent:kafka-avro-serializer:$confluentVersion")
-    implementation("org.apache.kafka:kafka_2.13:$kafkaVersion")
+    implementation("org.apache.kafka:kafka_2.12:$kafkaVersion")
     implementation("no.nav.helse:syfosm-common-models:$smCommonVersion")
     implementation("no.nav.helse:syfosm-common-networking:$smCommonVersion")
     implementation("no.nav.helse:syfosm-common-rest-sts:$smCommonVersion")
