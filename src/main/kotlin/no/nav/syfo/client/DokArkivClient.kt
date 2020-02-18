@@ -121,8 +121,8 @@ fun createTittleJournalpost(validationResult: ValidationResult, receivedSykmeldi
 }
 
 private fun getFomTomTekst(receivedSykmelding: ReceivedSykmelding) =
-        "${norskFormatDato(receivedSykmelding.sykmelding.perioder.sortedSykmeldingPeriodeFOMDate().first().fom)} -" +
-                " ${norskFormatDato(receivedSykmelding.sykmelding.perioder.sortedSykmeldingPeriodeTOMDate().last().tom)}"
+        "${formaterDato(receivedSykmelding.sykmelding.perioder.sortedSykmeldingPeriodeFOMDate().first().fom)} -" +
+                " ${formaterDato(receivedSykmelding.sykmelding.perioder.sortedSykmeldingPeriodeTOMDate().last().tom)}"
 
 fun List<Periode>.sortedSykmeldingPeriodeFOMDate(): List<Periode> =
         sortedBy { it.fom }
@@ -137,7 +137,7 @@ fun Behandler.formatName(): String =
             "$etternavn $fornavn $mellomnavn"
         }
 
-fun norskFormatDato(dato: LocalDate): String {
+fun formaterDato(dato: LocalDate): String {
     val formatter: DateTimeFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy")
     return dato.format(formatter)
 }
