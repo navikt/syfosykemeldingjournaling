@@ -7,6 +7,8 @@ import io.ktor.client.request.post
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import io.ktor.util.KtorExperimentalAPI
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 import net.logstash.logback.argument.StructuredArguments.fields
 import no.nav.syfo.helpers.retry
 import no.nav.syfo.log
@@ -119,8 +121,8 @@ fun createTittleJournalpost(validationResult: ValidationResult, receivedSykmeldi
 }
 
 private fun getFomTomTekst(receivedSykmelding: ReceivedSykmelding) =
-        "${receivedSykmelding.sykmelding.perioder.sortedSykmeldingPeriodeFOMDate().first().fom} -" +
-                " ${receivedSykmelding.sykmelding.perioder.sortedSykmeldingPeriodeTOMDate().last().tom}"
+        "${formaterDato(receivedSykmelding.sykmelding.perioder.sortedSykmeldingPeriodeFOMDate().first().fom)} -" +
+                " ${formaterDato(receivedSykmelding.sykmelding.perioder.sortedSykmeldingPeriodeTOMDate().last().tom)}"
 
 fun List<Periode>.sortedSykmeldingPeriodeFOMDate(): List<Periode> =
         sortedBy { it.fom }
@@ -134,3 +136,8 @@ fun Behandler.formatName(): String =
         } else {
             "$etternavn $fornavn $mellomnavn"
         }
+
+fun formaterDato(dato: LocalDate): String {
+    val formatter: DateTimeFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy")
+    return dato.format(formatter)
+}
