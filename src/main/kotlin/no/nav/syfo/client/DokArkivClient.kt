@@ -116,7 +116,7 @@ fun createTittleJournalpost(validationResult: ValidationResult, receivedSykmeldi
     return if (validationResult.status == Status.INVALID) {
         "Avvist Sykmelding ${getFomTomTekst(receivedSykmelding)}"
     } else if (receivedSykmelding.sykmelding.avsenderSystem.navn == "Papirsykmelding") {
-        "Papir Sykmelding ${getFomTomTekst(receivedSykmelding)}"
+        "Sykmelding mottatt på papir ${getFomTomTekst(receivedSykmelding)}"
     } else {
         "Sykmelding ${getFomTomTekst(receivedSykmelding)}"
     }
