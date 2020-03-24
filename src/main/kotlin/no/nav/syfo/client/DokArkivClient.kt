@@ -115,6 +115,8 @@ fun createAvsenderMottakerNotValidFnr(receivedSykmelding: ReceivedSykmelding): A
 fun createTittleJournalpost(validationResult: ValidationResult, receivedSykmelding: ReceivedSykmelding): String {
     return if (validationResult.status == Status.INVALID) {
         "Avvist Sykmelding ${getFomTomTekst(receivedSykmelding)}"
+    } else if (receivedSykmelding.sykmelding.avsenderSystem.navn == "Papirsykmelding") {
+        "Sykmelding mottatt på papir ${getFomTomTekst(receivedSykmelding)}"
     } else {
         "Sykmelding ${getFomTomTekst(receivedSykmelding)}"
     }
