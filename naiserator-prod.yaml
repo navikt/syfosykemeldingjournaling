@@ -9,7 +9,7 @@ spec:
   image: {{ image }}
   replicas:
     min: 1
-    max: 3
+    max: 6
     cpuThresholdPercentage: 90
   port: 8080
   liveness:
@@ -28,11 +28,11 @@ spec:
     path: /prometheus
   resources:
     limits:
-      cpu: 600m
-      memory: 1536Mi
+      cpu: 1000m
+      memory: 2048Mi
     requests:
-      cpu: 500m
-      memory: 1024Mi
+      cpu: 700m
+      memory: 1536Mi
   vault:
     enabled: true
   env:
