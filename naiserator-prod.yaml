@@ -46,3 +46,5 @@ spec:
       value: https://sts.adeo.no/SecurityTokenServiceProvider/
     - name: ARBEIDSFORDELING_V1_ENDPOINT_URL
       value: https://app.adeo.no/norg2/ws/Arbeidsfordeling/v1
+    - name: PDL_GRAPHQL_PATH
+      value: https://pdl-api.nais.adeo.no/graphql

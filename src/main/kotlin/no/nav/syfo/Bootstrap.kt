@@ -37,6 +37,8 @@ import no.nav.syfo.kafka.toProducerConfig
 import no.nav.syfo.kafka.toStreamsConfig
 import no.nav.syfo.model.ReceivedSykmelding
 import no.nav.syfo.model.ValidationResult
+import no.nav.syfo.pdl.client.PdlClient
+import no.nav.syfo.pdl.service.PdlPersonService
 import no.nav.syfo.rerun.setupRerunDependencies
 import no.nav.syfo.sak.avro.RegisterJournal
 import no.nav.syfo.service.JournalService
@@ -102,6 +104,12 @@ fun main() {
         port { withSTS(credentials.serviceuserUsername, credentials.serviceuserPassword, env.securityTokenServiceURL) }
     }
 
+    val pdlClient = PdlClient(httpClient,
+            env.pdlGraphqlPath,
+            PdlClient::class.java.getResource("/graphql/getPerson.graphql").readText().replace(Regex("[\n\t]"), ""))
+
+    val pdlService = PdlPersonService(pdlClient, stsClient)
+
     val kafkaBaseConfig = loadBaseConfig(env, credentials).envOverrides()
     val consumerConfig = kafkaBaseConfig.toConsumerConfig(
             "${env.applicationName}-consumer", valueDeserializer = StringDeserializer::class)
@@ -109,7 +117,7 @@ fun main() {
     val producer = KafkaProducer<String, RegisterJournal>(producerConfig)
 
     val streamProperties = kafkaBaseConfig.toStreamsConfig(env.applicationName, valueSerde = Serdes.String()::class)
-    val journalService = JournalService(env, producer, sakClient, dokArkivClient, pdfgenClient, personV3)
+    val journalService = JournalService(env, producer, sakClient, dokArkivClient, pdfgenClient, pdlService)
 
     setupRerunDependencies(journalService, personV3, env, credentials, consumerConfig, applicationState, producerConfig)
 
