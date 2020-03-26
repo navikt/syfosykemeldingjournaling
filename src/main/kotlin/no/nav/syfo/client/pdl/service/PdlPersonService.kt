@@ -27,7 +27,6 @@ class PdlPersonService @KtorExperimentalAPI constructor(private val pdlClient: P
         return PdlPerson(getNavn(pdlResponse.data.hentPerson.navn[0]))
     }
 
-
     private fun getNavn(navn: no.nav.syfo.pdl.client.model.Navn): Navn {
         return Navn(fornavn = navn.fornavn, mellomnavn = navn.mellomnavn, etternavn = navn.etternavn)
     }
