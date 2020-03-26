@@ -35,32 +35,27 @@ class JournalService(
             val sak = sakClient.findOrCreateSak(receivedSykmelding.sykmelding.pasientAktoerId, receivedSykmelding.msgId,
                     loggingMeta)
 
-            // TODO remove try catch
-            try {
-                val pasientPerson = pdlPersonService.getPerson(receivedSykmelding.personNrPasient, receivedSykmelding.msgId)
-                val pdfPayload = createPdfPayload(receivedSykmelding, validationResult, pasientPerson)
+            val pasientPerson = pdlPersonService.getPerson(receivedSykmelding.personNrPasient, receivedSykmelding.msgId)
+            val pdfPayload = createPdfPayload(receivedSykmelding, validationResult, pasientPerson)
 
-                val pdf = pdfgenClient.createPdf(pdfPayload)
-                log.info("PDF generert {}", StructuredArguments.fields(loggingMeta))
+            val pdf = pdfgenClient.createPdf(pdfPayload)
+            log.info("PDF generert {}", StructuredArguments.fields(loggingMeta))
 
-                val journalpostPayload = createJournalpostPayload(receivedSykmelding, sak.id.toString(), pdf, validationResult)
-                val journalpost = dokArkivClient.createJournalpost(journalpostPayload, loggingMeta)
+            val journalpostPayload = createJournalpostPayload(receivedSykmelding, sak.id.toString(), pdf, validationResult)
+            val journalpost = dokArkivClient.createJournalpost(journalpostPayload, loggingMeta)
 
-                val registerJournal = RegisterJournal().apply {
-                    journalpostKilde = "AS36"
-                    messageId = receivedSykmelding.msgId
-                    sakId = sak.id.toString()
-                    journalpostId = journalpost.journalpostId
-                }
-
-                producer.send(ProducerRecord(env.journalCreatedTopic, receivedSykmelding.sykmelding.id, registerJournal))
-                MELDING_LAGER_I_JOARK.inc()
-                log.info("Melding lagret i Joark med journalpostId {}, {}",
-                        journalpost.journalpostId,
-                        StructuredArguments.fields(loggingMeta))
-            } catch (e: Exception){
-                log.info("This is bad real bad")
+            val registerJournal = RegisterJournal().apply {
+                journalpostKilde = "AS36"
+                messageId = receivedSykmelding.msgId
+                sakId = sak.id.toString()
+                journalpostId = journalpost.journalpostId
             }
+
+            producer.send(ProducerRecord(env.journalCreatedTopic, receivedSykmelding.sykmelding.id, registerJournal))
+            MELDING_LAGER_I_JOARK.inc()
+            log.info("Melding lagret i Joark med journalpostId {}, {}",
+                    journalpost.journalpostId,
+                    StructuredArguments.fields(loggingMeta))
         }
     }
 }
