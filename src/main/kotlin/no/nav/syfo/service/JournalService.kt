@@ -25,11 +25,11 @@ class JournalService(private val env: Environment, private val producer: KafkaPr
         wrapExceptions(loggingMeta) {
             log.info("Mottok en sykmelding, prover aa lagre i Joark {}", StructuredArguments.fields(loggingMeta))
 
-            val patient = fetchPerson(personV3, receivedSykmelding.personNrPasient, loggingMeta)
-            val pdfPayload = createPdfPayload(receivedSykmelding, validationResult, patient)
-
             val sak = sakClient.findOrCreateSak(receivedSykmelding.sykmelding.pasientAktoerId, receivedSykmelding.msgId,
                     loggingMeta)
+
+            val patient = fetchPerson(personV3, receivedSykmelding.personNrPasient, loggingMeta)
+            val pdfPayload = createPdfPayload(receivedSykmelding, validationResult, patient)
 
             val pdf = pdfgenClient.createPdf(pdfPayload)
             log.info("PDF generert {}", StructuredArguments.fields(loggingMeta))
