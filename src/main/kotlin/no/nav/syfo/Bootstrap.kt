@@ -123,9 +123,7 @@ fun createKafkaStream(streamProperties: Properties, env: Environment): KafkaStre
             listOf(
                     env.sm2013AutomaticHandlingTopic,
                     env.sm2013ManualHandlingTopic,
-                    env.sm2013InvalidHandlingTopic,
-                    env.smpapirManualHandlingTopic,
-                    env.kafkaSm2013AutomaticPapirmottakTopic
+                    env.sm2013InvalidHandlingTopic
             ), Consumed.with(Serdes.String(), Serdes.String())
     )
 
