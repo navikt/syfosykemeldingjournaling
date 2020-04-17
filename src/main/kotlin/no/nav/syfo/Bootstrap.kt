@@ -178,7 +178,7 @@ fun launchListeners(
         kafkaStream.setUncaughtExceptionHandler { _, err ->
             log.error("Caught exception in stream: ${err.message}", err)
             kafkaStream.close()
-            applicationState.alive = false
+            throw err
         }
 
         kafkaStream.setStateListener { newState, oldState ->
@@ -188,7 +188,7 @@ fun launchListeners(
                 // if the stream has died there is no reason to keep spinning
                 log.error("Closing stream because it went into error state")
                 kafkaStream.close()
-                applicationState.alive = false
+                throw RuntimeException("KafkaStreams er i Error sate")
             }
         }
 
