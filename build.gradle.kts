@@ -30,7 +30,7 @@ val jaxbRuntimeVersion = "2.4.0-b180830.0438"
 val javaxJaxwsApiVersion = "2.2.1"
 val jaxbApiVersion = "2.4.0-b180830.0359"
 val navArbeidsfordelingv1Version = "1.2019.07.11-06.47-b55f47790a9d"
-val smCommonDiagnosisCodesVersion = "1.f898112"
+val smCommonDiagnosisCodesVersion = "1.68817ee"
 
 plugins {
     java
