@@ -216,14 +216,10 @@ suspend fun blockingApplicationLogic(
             log.info("Offset for topic: privat-syfo-sm2013-sak, offset: ${it.offset()}")
             val behandlingsUtfallReceivedSykmelding: BehandlingsUtfallReceivedSykmelding =
                     objectMapper.readValue(it.value())
-            var receivedSykmelding: ReceivedSykmelding =
+            val receivedSykmelding: ReceivedSykmelding =
                     objectMapper.readValue(behandlingsUtfallReceivedSykmelding.receivedSykmelding)
             val validationResult: ValidationResult =
                     objectMapper.readValue(behandlingsUtfallReceivedSykmelding.behandlingsUtfall)
-
-            if (it.key() == "50c04985-7b25-47c5-9d90-7178cccbab5e") {
-                receivedSykmelding = receivedSykmelding.copy(msgId = "f8855733-c033-4731-be4c-ad733b35e6f9")
-            }
 
             val loggingMeta = LoggingMeta(
                     mottakId = receivedSykmelding.navLogId,
