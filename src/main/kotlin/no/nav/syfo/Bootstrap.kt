@@ -227,11 +227,7 @@ suspend fun blockingApplicationLogic(
                     msgId = receivedSykmelding.msgId,
                     sykmeldingId = receivedSykmelding.sykmelding.id
             )
-            if (receivedSykmelding.sykmelding.id == "50c04985-7b25-47c5-9d90-7178cccbab5e") {
-                log.info("ignorerer duplikat sykmelding")
-            } else {
-                journalService.onJournalRequest(receivedSykmelding, validationResult, loggingMeta)
-            }
+            journalService.onJournalRequest(receivedSykmelding, validationResult, loggingMeta)
         }
 
         delay(100)
