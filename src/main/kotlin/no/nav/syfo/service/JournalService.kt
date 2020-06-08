@@ -1,7 +1,7 @@
 package no.nav.syfo.service
 
 import io.ktor.util.KtorExperimentalAPI
-import net.logstash.logback.argument.StructuredArguments
+import net.logstash.logback.argument.StructuredArguments.fields
 import no.nav.syfo.Environment
 import no.nav.syfo.client.DokArkivClient
 import no.nav.syfo.client.PdfgenClient
@@ -23,7 +23,7 @@ import org.apache.kafka.clients.producer.ProducerRecord
 class JournalService(private val env: Environment, private val producer: KafkaProducer<String, RegisterJournal>, private val sakClient: SakClient, private val dokArkivClient: DokArkivClient, private val pdfgenClient: PdfgenClient, private val personV3: PersonV3) {
     suspend fun onJournalRequest(receivedSykmelding: ReceivedSykmelding, validationResult: ValidationResult, loggingMeta: LoggingMeta) {
         wrapExceptions(loggingMeta) {
-            log.info("Mottok en sykmelding, prover aa lagre i Joark {}", StructuredArguments.fields(loggingMeta))
+            log.info("Mottok en sykmelding, prover aa lagre i Joark {}", fields(loggingMeta))
 
             val sak = sakClient.findOrCreateSak(receivedSykmelding.sykmelding.pasientAktoerId, receivedSykmelding.msgId,
                     loggingMeta)
@@ -32,7 +32,7 @@ class JournalService(private val env: Environment, private val producer: KafkaPr
             val pdfPayload = createPdfPayload(receivedSykmelding, validationResult, patient)
 
             val pdf = pdfgenClient.createPdf(pdfPayload)
-            log.info("PDF generert {}", StructuredArguments.fields(loggingMeta))
+            log.info("PDF generert {}", fields(loggingMeta))
 
             val journalpostPayload = createJournalpostPayload(receivedSykmelding, sak.id.toString(), pdf, validationResult)
             val journalpost = dokArkivClient.createJournalpost(journalpostPayload, loggingMeta)
@@ -44,11 +44,16 @@ class JournalService(private val env: Environment, private val producer: KafkaPr
                 journalpostId = journalpost.journalpostId
             }
 
-            producer.send(ProducerRecord(env.journalCreatedTopic, receivedSykmelding.sykmelding.id, registerJournal))
+            try {
+                producer.send(ProducerRecord(env.journalCreatedTopic, receivedSykmelding.sykmelding.id, registerJournal)).get()
+            } catch (ex: Exception) {
+                log.error("Error sending to kafkatopic {} {}", env.journalCreatedTopic, fields(loggingMeta))
+                throw ex
+            }
             MELDING_LAGER_I_JOARK.inc()
             log.info("Melding lagret i Joark med journalpostId {}, {}",
                     journalpost.journalpostId,
-                    StructuredArguments.fields(loggingMeta))
+                    fields(loggingMeta))
         }
     }
 }

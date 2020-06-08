@@ -90,7 +90,12 @@ class RerunPdfGenerationService(
             }
 
             log.info("Created produceTask, sending to aapen-syfo-oppgave-produserOppgave, {}", fields(meta))
-            kafkaProducer.send(ProducerRecord("aapen-syfo-oppgave-produserOppgave", rerunKafkaMessage.receivedSykmelding.sykmelding.id, produceTask))
+            try {
+                kafkaProducer.send(ProducerRecord("aapen-syfo-oppgave-produserOppgave", rerunKafkaMessage.receivedSykmelding.sykmelding.id, produceTask)).get()
+            } catch (ex: Exception) {
+                log.error("Failed to send to kafka fro rerun {}", fields(meta))
+                throw ex
+            }
         }
     }
 }
