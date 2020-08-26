@@ -31,6 +31,7 @@ val javaxJaxwsApiVersion = "2.2.1"
 val jaxbApiVersion = "2.4.0-b180830.0359"
 val navArbeidsfordelingv1Version = "1.2019.07.11-06.47-b55f47790a9d"
 val smCommonDiagnosisCodesVersion = "1.68817ee"
+val ioMockVersion = "1.9.3"
 
 plugins {
     java
@@ -72,6 +73,7 @@ dependencies {
     implementation("io.ktor:ktor-client-json:$ktorVersion")
     implementation("io.ktor:ktor-client-auth-basic:$ktorVersion")
     implementation("io.ktor:ktor-client-jackson:$ktorVersion")
+    implementation ("io.ktor:ktor-jackson:$ktorVersion")
 
     implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:$jacksonVersion")
 
@@ -110,6 +112,7 @@ dependencies {
     testImplementation("org.spekframework.spek2:spek-dsl-jvm:$spekVersion")
     testImplementation("io.ktor:ktor-server-test-host:$ktorVersion")
     testImplementation("no.nav:kafka-embedded-env:$kafkaEmbeddedVersion")
+    testImplementation ("io.mockk:mockk:$ioMockVersion")
 
     testImplementation("org.junit.platform:junit-platform-launcher:$junitPlatformLauncher")
     testRuntimeOnly("org.spekframework.spek2:spek-runtime-jvm:$spekVersion")

@@ -1,10 +1,13 @@
 package no.nav.syfo.client
 
 import io.ktor.client.HttpClient
+import io.ktor.client.call.receive
 import io.ktor.client.request.header
 import io.ktor.client.request.parameter
 import io.ktor.client.request.post
+import io.ktor.client.statement.HttpStatement
 import io.ktor.http.ContentType
+import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
 import io.ktor.util.KtorExperimentalAPI
 import java.time.LocalDate
@@ -40,14 +43,20 @@ class DokArkivClient(
     ): JournalpostResponse = retry(callName = "dokarkiv",
             retryIntervals = arrayOf(500L, 1000L, 3000L, 5000L, 10000L)) {
         try {
-            log.info("Kall til dokakriv Nav-Callid {}, {}", journalpostRequest.eksternReferanseId,
+            log.info("Kall til dokarkiv Nav-Callid {}, {}", journalpostRequest.eksternReferanseId,
                     fields(loggingMeta))
-            httpClient.post<JournalpostResponse>(url) {
+            val httpResponse = httpClient.post<HttpStatement>(url) {
                 contentType(ContentType.Application.Json)
                 header("Authorization", "Bearer ${stsClient.oidcToken().access_token}")
                 header("Nav-Callid", journalpostRequest.eksternReferanseId)
                 body = journalpostRequest
                 parameter("forsoekFerdigstill", true)
+            }.execute()
+            if (httpResponse.status == HttpStatusCode.Created || httpResponse.status == HttpStatusCode.Conflict) {
+                httpResponse.call.response.receive<JournalpostResponse>()
+            } else {
+                log.error("Mottok uventet statuskode fra dokarkiv: {}, {}", httpResponse.status, fields(loggingMeta))
+                throw RuntimeException("Mottok uventet statuskode fra dokarkiv: ${httpResponse.status}")
             }
         } catch (e: Exception) {
             log.warn("Oppretting av journalpost feilet: ${e.message}, {}", fields(loggingMeta))
