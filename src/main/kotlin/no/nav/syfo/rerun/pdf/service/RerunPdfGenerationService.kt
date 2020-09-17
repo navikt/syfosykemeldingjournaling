@@ -12,7 +12,6 @@ import no.nav.syfo.model.ReceivedSykmelding
 import no.nav.syfo.model.Status
 import no.nav.syfo.model.ValidationResult
 import no.nav.syfo.objectMapper
-import no.nav.syfo.rerun.service.FindNAVKontorService
 import no.nav.syfo.sak.avro.PrioritetType
 import no.nav.syfo.sak.avro.ProduceTask
 import no.nav.syfo.service.JournalService
@@ -30,7 +29,6 @@ class RerunPdfGenerationService(
     private val journalService: JournalService,
     private val applicationState: ApplicationState,
     private val topicName: String,
-    private val findNAVKontorService: FindNAVKontorService,
     private val kafkaProducer: KafkaProducer<String, ProduceTask>
 ) {
     private val ignorIds = listOf("7e073ab6-ecc1-49a1-a726-7dccb8b5ab23")
@@ -60,8 +58,6 @@ class RerunPdfGenerationService(
 
         log.info("Received sykmelding from rerun-topic, {}", fields(meta))
 
-        val navKontorNr = findNAVKontorService.finnBehandlendeEnhet(rerunKafkaMessage.receivedSykmelding, meta)
-
         val validationResult = rerunKafkaMessage.validationResult
 
         if (!ignorIds.contains(rerunKafkaMessage.receivedSykmelding.sykmelding.id)) {
@@ -72,7 +68,7 @@ class RerunPdfGenerationService(
             val produceTask = ProduceTask().apply {
                 messageId = rerunKafkaMessage.receivedSykmelding.msgId
                 aktoerId = rerunKafkaMessage.receivedSykmelding.sykmelding.pasientAktoerId
-                tildeltEnhetsnr = navKontorNr
+                tildeltEnhetsnr = ""
                 opprettetAvEnhetsnr = "9999"
                 behandlesAvApplikasjon = "FS22" // Gosys
                 orgnr = rerunKafkaMessage.receivedSykmelding.legekontorOrgNr ?: ""

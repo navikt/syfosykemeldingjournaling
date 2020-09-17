@@ -29,7 +29,6 @@ val jaxwsToolsVersion = "2.3.1"
 val jaxbRuntimeVersion = "2.4.0-b180830.0438"
 val javaxJaxwsApiVersion = "2.2.1"
 val jaxbApiVersion = "2.4.0-b180830.0359"
-val navArbeidsfordelingv1Version = "1.2019.07.11-06.47-b55f47790a9d"
 val smCommonDiagnosisCodesVersion = "1.68817ee"
 val ioMockVersion = "1.9.3"
 
@@ -91,7 +90,6 @@ dependencies {
 
     implementation("no.nav.syfo.schemas:syfosmoppgave-avro:$syfosmoppgaveSchemasVersion")
     implementation("no.nav.tjenestespesifikasjoner:person-v3-tjenestespesifikasjon:$navPersonv3Version")
-    implementation ("no.nav.tjenestespesifikasjoner:arbeidsfordeling-v1-tjenestespesifikasjon:$navArbeidsfordelingv1Version")
 
     implementation("org.apache.commons:commons-text:$commonsTextVersion")
     implementation("org.apache.cxf:cxf-rt-frontend-jaxws:$cxfVersion")
