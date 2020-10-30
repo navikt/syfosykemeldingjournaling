@@ -161,6 +161,7 @@ fun createListener(applicationState: ApplicationState, action: suspend Coroutine
             } catch (e: TrackableException) {
                 log.error("En uhåndtert feil oppstod, applikasjonen restarter {}", fields(e.loggingMeta), e.cause)
             } finally {
+                applicationState.ready = false
                 applicationState.alive = false
             }
         }
@@ -179,6 +180,8 @@ fun launchListeners(
         kafkaStream.setUncaughtExceptionHandler { _, err ->
             log.error("Caught exception in stream: ${err.message}", err)
             kafkaStream.close()
+            applicationState.ready = false
+            applicationState.alive = false
             throw err
         }
 
@@ -189,7 +192,9 @@ fun launchListeners(
                 // if the stream has died there is no reason to keep spinning
                 log.error("Closing stream because it went into error state")
                 kafkaStream.close()
-                throw RuntimeException("KafkaStreams er i Error sate")
+                log.error("Restarter applikasjon")
+                applicationState.ready = false
+                applicationState.alive = false
             }
         }
 
