@@ -191,7 +191,7 @@ fun launchListeners(
             if (newState == KafkaStreams.State.ERROR) {
                 // if the stream has died there is no reason to keep spinning
                 log.error("Closing stream because it went into error state")
-                kafkaStream.close()
+                kafkaStream.close(30, TimeUnit.SECONDS)
                 log.error("Restarter applikasjon")
                 applicationState.ready = false
                 applicationState.alive = false
