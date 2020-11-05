@@ -106,6 +106,7 @@ fun main() {
     }
 
     val kafkaBaseConfig = loadBaseConfig(env, credentials).envOverrides()
+    kafkaBaseConfig["auto.offset.reset"] = "none"
     val consumerConfig = kafkaBaseConfig.toConsumerConfig(
             "${env.applicationName}-consumer", valueDeserializer = StringDeserializer::class)
     val producerConfig = kafkaBaseConfig.toProducerConfig(env.applicationName, KafkaAvroSerializer::class)
@@ -235,13 +236,13 @@ suspend fun blockingApplicationLogic(
                     msgId = receivedSykmelding.msgId,
                     sykmeldingId = receivedSykmelding.sykmelding.id
             )
-            if (receivedSykmelding.mottattDato.isBefore(LocalDate.now().atStartOfDay())) {
+            if (receivedSykmelding.mottattDato.isBefore(LocalDate.of(2020, 11, 5).atStartOfDay())) {
                 log.info("Behandler ikke gammel sykmelding {}", fields(loggingMeta))
             } else {
                 journalService.onJournalRequest(receivedSykmelding, validationResult, loggingMeta)
             }
         }
 
-        delay(100)
+        delay(1)
     }
 }
