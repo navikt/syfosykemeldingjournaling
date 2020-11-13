@@ -56,8 +56,6 @@ import org.apache.kafka.streams.kstream.Joined
 import org.apache.kafka.streams.kstream.Produced
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import java.time.LocalDate
-import java.time.LocalDateTime
 
 data class BehandlingsUtfallReceivedSykmelding(val receivedSykmelding: ByteArray, val behandlingsUtfall: ByteArray)
 
@@ -236,11 +234,7 @@ suspend fun blockingApplicationLogic(
                     msgId = receivedSykmelding.msgId,
                     sykmeldingId = receivedSykmelding.sykmelding.id
             )
-            if (receivedSykmelding.mottattDato.isBefore(LocalDate.of(2020, 11, 5).atStartOfDay())) {
-                log.info("Behandler ikke gammel sykmelding {}", fields(loggingMeta))
-            } else {
-                journalService.onJournalRequest(receivedSykmelding, validationResult, loggingMeta)
-            }
+            journalService.onJournalRequest(receivedSykmelding, validationResult, loggingMeta)
         }
 
         delay(1)
