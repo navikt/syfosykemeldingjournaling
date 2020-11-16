@@ -15,7 +15,7 @@ import no.nav.syfo.model.Pasient
 import no.nav.syfo.model.PdfPayload
 import no.nav.syfo.model.ReceivedSykmelding
 import no.nav.syfo.model.ValidationResult
-import no.nav.tjeneste.virksomhet.person.v3.informasjon.Person
+import no.nav.syfo.pdl.model.PdlPerson
 
 @KtorExperimentalAPI
 class PdfgenClient constructor(
@@ -40,12 +40,12 @@ class PdfgenClient constructor(
 fun createPdfPayload(
     receivedSykmelding: ReceivedSykmelding,
     validationResult: ValidationResult,
-    person: Person
+    person: PdlPerson
 ): PdfPayload = PdfPayload(
         pasient = Pasient(
-                fornavn = person.personnavn.fornavn,
-                mellomnavn = person.personnavn.mellomnavn,
-                etternavn = person.personnavn.etternavn,
+                fornavn = person.navn.fornavn,
+                mellomnavn = person.navn.mellomnavn,
+                etternavn = person.navn.etternavn,
                 personnummer = receivedSykmelding.personNrPasient,
                 tlfNummer = receivedSykmelding.tlfPasient
         ),

@@ -12,15 +12,22 @@ import no.nav.syfo.log
 import no.nav.syfo.metrics.MELDING_LAGER_I_JOARK
 import no.nav.syfo.model.ReceivedSykmelding
 import no.nav.syfo.model.ValidationResult
+import no.nav.syfo.pdl.service.PdlPersonService
 import no.nav.syfo.sak.avro.RegisterJournal
 import no.nav.syfo.util.LoggingMeta
 import no.nav.syfo.util.wrapExceptions
-import no.nav.tjeneste.virksomhet.person.v3.binding.PersonV3
 import org.apache.kafka.clients.producer.KafkaProducer
 import org.apache.kafka.clients.producer.ProducerRecord
 
 @KtorExperimentalAPI
-class JournalService(private val env: Environment, private val producer: KafkaProducer<String, RegisterJournal>, private val sakClient: SakClient, private val dokArkivClient: DokArkivClient, private val pdfgenClient: PdfgenClient, private val personV3: PersonV3) {
+class JournalService(
+    private val env: Environment,
+    private val producer: KafkaProducer<String, RegisterJournal>,
+    private val sakClient: SakClient,
+    private val dokArkivClient: DokArkivClient,
+    private val pdfgenClient: PdfgenClient,
+    private val pdlPersonService: PdlPersonService
+) {
     suspend fun onJournalRequest(receivedSykmelding: ReceivedSykmelding, validationResult: ValidationResult, loggingMeta: LoggingMeta) {
         wrapExceptions(loggingMeta) {
             log.info("Mottok en sykmelding, prover aa lagre i Joark {}", fields(loggingMeta))
@@ -28,7 +35,7 @@ class JournalService(private val env: Environment, private val producer: KafkaPr
             val sak = sakClient.findOrCreateSak(receivedSykmelding.sykmelding.pasientAktoerId, receivedSykmelding.msgId,
                     loggingMeta)
 
-            val patient = fetchPerson(personV3, receivedSykmelding.personNrPasient, loggingMeta)
+            val patient = pdlPersonService.getPdlPerson(receivedSykmelding.personNrPasient, loggingMeta)
             val pdfPayload = createPdfPayload(receivedSykmelding, validationResult, patient)
 
             val pdf = pdfgenClient.createPdf(pdfPayload)

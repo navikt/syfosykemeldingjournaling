@@ -20,6 +20,7 @@ import io.ktor.routing.routing
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
 import io.ktor.util.KtorExperimentalAPI
+import io.mockk.clearAllMocks
 import io.mockk.coEvery
 import io.mockk.mockk
 import java.net.ServerSocket
@@ -72,10 +73,11 @@ object DokArkivClientTest : Spek({
     val dokArkivClient = DokArkivClient("$mockHttpServerUrl/dokarkiv", stsOidcClientMock, httpClient)
 
     afterGroup {
-        mockServer.stop(TimeUnit.SECONDS.toMillis(10), TimeUnit.SECONDS.toMillis(10))
+        mockServer.stop(TimeUnit.SECONDS.toMillis(1), TimeUnit.SECONDS.toMillis(1))
     }
 
     beforeGroup {
+        clearAllMocks()
         coEvery { stsOidcClientMock.oidcToken() } returns OidcToken("token", "type", 300L)
     }
 

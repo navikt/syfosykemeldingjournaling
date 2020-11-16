@@ -19,7 +19,6 @@ val smCommonVersion = "1.125b076"
 val spekVersion = "2.0.13"
 val syfosmoppgaveSchemasVersion = "785e8a93a3b881e89862035abe539c795c1222dd"
 val junitPlatformLauncher = "1.6.0"
-val navPersonv3Version = "1.2019.07.11-06.47-b55f47790a9d"
 val javaxActivationVersion = "1.1.1"
 val cxfVersion = "3.2.9"
 val commonsTextVersion = "1.4"
@@ -89,7 +88,6 @@ dependencies {
     implementation("no.nav.helse:syfosm-common-diagnosis-codes:$smCommonDiagnosisCodesVersion")
 
     implementation("no.nav.syfo.schemas:syfosmoppgave-avro:$syfosmoppgaveSchemasVersion")
-    implementation("no.nav.tjenestespesifikasjoner:person-v3-tjenestespesifikasjon:$navPersonv3Version")
 
     implementation("org.apache.commons:commons-text:$commonsTextVersion")
     implementation("org.apache.cxf:cxf-rt-frontend-jaxws:$cxfVersion")

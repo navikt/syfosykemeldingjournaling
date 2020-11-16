@@ -1,0 +1,18 @@
+query($ident: ID!){
+  hentPerson(ident: $ident) {
+  	navn(historikk: false) {
+  	  fornavn
+  	  mellomnavn
+  	  etternavn
+    }
+    adressebeskyttelse {
+      gradering
+    }
+  }
+  hentIdenter(ident: $ident, historikk: false) {
+      identer {
+        ident,
+        gruppe
+      }
+    }
+}
