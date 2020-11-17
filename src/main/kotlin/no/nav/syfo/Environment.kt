@@ -15,10 +15,10 @@ data class Environment(
     val sm2013BehandlingsUtfallTopic: String = getEnvVar("KAFKA_SM2013_BEHANDLING_TOPIC", "privat-syfo-sm2013-behandlingsUtfall"),
     val opprettSakUrl: String = getEnvVar("OPPRETT_SAK_URL", "http://sak/api/v1/saker"),
     val dokArkivUrl: String = getEnvVar("DOK_ARKIV_URL"),
-    val personV3EndpointURL: String = getEnvVar("PERSON_V3_ENDPOINT_URL"),
     val securityTokenServiceURL: String = getEnvVar("SECURITY_TOKEN_SERVICE_URL"),
     val pdfgen: String = getEnvVar("PDF_GEN_URL", "http://syfopdfgen/api/v1/genpdf/syfosm/syfosm"),
-    val rerunTopicName: String = getEnvVar("RERUN_TOPIC_NAME", "privat-syfo-register-rerun-tmp")
+    val rerunTopicName: String = getEnvVar("RERUN_TOPIC_NAME", "privat-syfo-register-rerun-tmp"),
+    val pdlGraphqlPath: String = getEnvVar("PDL_GRAPHQL_PATH")
 ) : KafkaConfig
 
 data class VaultCredentials(

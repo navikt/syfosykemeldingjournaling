@@ -9,9 +9,9 @@ import no.nav.syfo.model.RuleInfo
 import no.nav.syfo.model.Status
 import no.nav.syfo.model.Sykmelding
 import no.nav.syfo.model.ValidationResult
+import no.nav.syfo.pdl.model.Navn
+import no.nav.syfo.pdl.model.PdlPerson
 import no.nav.syfo.sm.Diagnosekoder.objectMapper
-import no.nav.tjeneste.virksomhet.person.v3.informasjon.Person
-import no.nav.tjeneste.virksomhet.person.v3.informasjon.Personnavn
 
 fun main() {
     val sykmelding: Sykmelding = objectMapper.readValue(PdfPayload::class.java.getResourceAsStream("/sm.json"))
@@ -28,11 +28,12 @@ fun main() {
                     ruleStatus = Status.MANUAL_PROCESSING
             )
     ))
-    val person = Person()
-            .withPersonnavn(Personnavn()
-                    .withFornavn("Fornavn")
-                    .withMellomnavn("Mellomnavnsen")
-                    .withEtternavn("Etternavn"))
+    val person = PdlPerson(
+        navn = Navn("Fornavn", "Mellomnavnsen", "Etternavn"),
+        fnr = "123456789",
+        aktorId = null,
+        adressebeskyttelse = null
+    )
     val pdfPayload = createPdfPayload(receivedSykmelding, validationResult, person)
     val json = objectMapper.writeValueAsString(pdfPayload)
     println(json)

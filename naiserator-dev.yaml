@@ -40,7 +40,7 @@ spec:
       value: https://dokarkiv-q1.nais.preprod.local/rest/journalpostapi/v1/journalpost
     - name: KAFKA_BOOTSTRAP_SERVERS_URL
       value: SSL://b27apvl00045.preprod.local:8443,SSL://b27apvl00046.preprod.local:8443,SSL://b27apvl00047.preprod.local:8443
-    - name: PERSON_V3_ENDPOINT_URL
-      value: https://wasapp-q1.adeo.no/tpsws/ws/Person/v3
     - name: SECURITY_TOKEN_SERVICE_URL
       value: https://sts-q1.preprod.local/SecurityTokenServiceProvider/
+    - name: PDL_GRAPHQL_PATH
+      value: https://pdl-api.nais.preprod.local/graphql

@@ -31,8 +31,8 @@ object KafkaITSpek : Spek({
             kafkaBootstrapServers = embeddedEnvironment.brokersURL,
             dokArkivUrl = "TODO",
             opprettSakUrl = "TODO",
-            personV3EndpointURL = "TODO",
-            securityTokenServiceURL = "TODO"
+            securityTokenServiceURL = "TODO",
+            pdlGraphqlPath = "TODO"
     )
 
     val vaultCredentials = VaultCredentials("unused", "unused")

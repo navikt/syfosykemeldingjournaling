@@ -37,13 +37,12 @@ import no.nav.syfo.kafka.toProducerConfig
 import no.nav.syfo.kafka.toStreamsConfig
 import no.nav.syfo.model.ReceivedSykmelding
 import no.nav.syfo.model.ValidationResult
+import no.nav.syfo.pdl.PdlFactory
 import no.nav.syfo.rerun.setupRerunDependencies
 import no.nav.syfo.sak.avro.RegisterJournal
 import no.nav.syfo.service.JournalService
 import no.nav.syfo.util.LoggingMeta
 import no.nav.syfo.util.TrackableException
-import no.nav.syfo.ws.createPort
-import no.nav.tjeneste.virksomhet.person.v3.binding.PersonV3
 import org.apache.kafka.clients.consumer.KafkaConsumer
 import org.apache.kafka.clients.producer.KafkaProducer
 import org.apache.kafka.common.serialization.Serdes
@@ -99,9 +98,7 @@ fun main() {
     val dokArkivClient = DokArkivClient(env.dokArkivUrl, stsClient, httpClient)
     val pdfgenClient = PdfgenClient(env.pdfgen, httpClient)
 
-    val personV3 = createPort<PersonV3>(env.personV3EndpointURL) {
-        port { withSTS(credentials.serviceuserUsername, credentials.serviceuserPassword, env.securityTokenServiceURL) }
-    }
+    val pdlPersonService = PdlFactory.getPdlService(env, stsClient, httpClient)
 
     val kafkaBaseConfig = loadBaseConfig(env, credentials).envOverrides()
     kafkaBaseConfig["auto.offset.reset"] = "none"
@@ -111,9 +108,9 @@ fun main() {
     val producer = KafkaProducer<String, RegisterJournal>(producerConfig)
 
     val streamProperties = kafkaBaseConfig.toStreamsConfig(env.applicationName, valueSerde = Serdes.String()::class)
-    val journalService = JournalService(env, producer, sakClient, dokArkivClient, pdfgenClient, personV3)
+    val journalService = JournalService(env, producer, sakClient, dokArkivClient, pdfgenClient, pdlPersonService)
 
-    setupRerunDependencies(journalService, personV3, env, credentials, consumerConfig, applicationState, producerConfig)
+    setupRerunDependencies(journalService, env, consumerConfig, applicationState, producerConfig)
 
     launchListeners(env, applicationState, consumerConfig, journalService, streamProperties)
 }
