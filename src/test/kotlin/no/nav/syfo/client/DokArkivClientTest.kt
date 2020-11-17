@@ -20,7 +20,6 @@ import io.ktor.routing.routing
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
 import io.ktor.util.KtorExperimentalAPI
-import io.mockk.clearAllMocks
 import io.mockk.coEvery
 import io.mockk.mockk
 import java.net.ServerSocket
@@ -35,7 +34,7 @@ import org.spekframework.spek2.style.specification.describe
 
 @KtorExperimentalAPI
 object DokArkivClientTest : Spek({
-    val stsOidcClientMock = mockk<StsOidcClient>()
+    val stsOidcClient = mockk<StsOidcClient>()
     val httpClient = HttpClient(Apache) {
         install(JsonFeature) {
             serializer = JacksonSerializer {
@@ -70,21 +69,17 @@ object DokArkivClientTest : Spek({
         }
     }.start()
 
-    val dokArkivClient = DokArkivClient("$mockHttpServerUrl/dokarkiv", stsOidcClientMock, httpClient)
+    val dokArkivClient = DokArkivClient("$mockHttpServerUrl/dokarkiv", stsOidcClient, httpClient)
 
     afterGroup {
         mockServer.stop(TimeUnit.SECONDS.toMillis(1), TimeUnit.SECONDS.toMillis(1))
-    }
-
-    beforeGroup {
-        clearAllMocks()
-        coEvery { stsOidcClientMock.oidcToken() } returns OidcToken("token", "type", 300L)
     }
 
     describe("Test av DokarkivClient") {
         it("Happy-case") {
             var jpResponse: JournalpostResponse? = null
             runBlocking {
+                coEvery { stsOidcClient.oidcToken() } returns OidcToken("Token", "JWT", 1L)
                 jpResponse = dokArkivClient.createJournalpost(JournalpostRequest(dokumenter = emptyList(), eksternReferanseId = "NY"), loggingMetadata)
             }
 
@@ -93,6 +88,7 @@ object DokArkivClientTest : Spek({
         it("Feiler ikke ved duplikat") {
             var jpResponse: JournalpostResponse? = null
             runBlocking {
+                coEvery { stsOidcClient.oidcToken() } returns OidcToken("Token", "JWT", 1L)
                 jpResponse = dokArkivClient.createJournalpost(JournalpostRequest(dokumenter = emptyList(), eksternReferanseId = "DUPLIKAT"), loggingMetadata)
             }
 
