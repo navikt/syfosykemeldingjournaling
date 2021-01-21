@@ -28,7 +28,7 @@ val jaxwsToolsVersion = "2.3.1"
 val jaxbRuntimeVersion = "2.4.0-b180830.0438"
 val javaxJaxwsApiVersion = "2.2.1"
 val jaxbApiVersion = "2.4.0-b180830.0359"
-val smCommonDiagnosisCodesVersion = "1.68817ee"
+val smCommonDiagnosisCodesVersion = "1.f409e4d"
 val ioMockVersion = "1.10.0"
 
 plugins {
