@@ -7,7 +7,7 @@ version = "1.0.0"
 
 val confluentVersion = "5.3.1"
 val coroutinesVersion = "1.3.9"
-val jacksonVersion = "2.9.8"
+val jacksonVersion = "2.10.2"
 val kafkaVersion = "2.4.0"
 val kafkaEmbeddedVersion = "2.4.0"
 val kluentVersion = "1.51"
@@ -15,7 +15,7 @@ val ktorVersion = "1.4.1"
 val logstashLogbackEncoder = "6.1"
 val logbackVersion = "1.2.3"
 val prometheusVersion = "0.6.0"
-val smCommonVersion = "1.125b076"
+val smCommonVersion = "1.f409e4d"
 val spekVersion = "2.0.13"
 val syfosmoppgaveSchemasVersion = "785e8a93a3b881e89862035abe539c795c1222dd"
 val junitPlatformLauncher = "1.6.0"
@@ -28,7 +28,6 @@ val jaxwsToolsVersion = "2.3.1"
 val jaxbRuntimeVersion = "2.4.0-b180830.0438"
 val javaxJaxwsApiVersion = "2.2.1"
 val jaxbApiVersion = "2.4.0-b180830.0359"
-val smCommonDiagnosisCodesVersion = "1.f409e4d"
 val ioMockVersion = "1.10.0"
 
 plugins {
@@ -85,7 +84,7 @@ dependencies {
     implementation("no.nav.helse:syfosm-common-rest-sts:$smCommonVersion")
     implementation("no.nav.helse:syfosm-common-kafka:$smCommonVersion")
     implementation("no.nav.helse:syfosm-common-ws:$smCommonVersion")
-    implementation("no.nav.helse:syfosm-common-diagnosis-codes:$smCommonDiagnosisCodesVersion")
+    implementation("no.nav.helse:syfosm-common-diagnosis-codes:$smCommonVersion")
 
     implementation("no.nav.syfo.schemas:syfosmoppgave-avro:$syfosmoppgaveSchemasVersion")
 

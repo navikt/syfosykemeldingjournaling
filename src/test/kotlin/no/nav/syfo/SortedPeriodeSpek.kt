@@ -30,7 +30,8 @@ object SortedPeriodeSpek : Spek({
                 mottattDato = LocalDateTime.now(),
                 rulesetVersion = "2",
                 fellesformat = "",
-                tssid = "13415"
+                tssid = "13415",
+                merknader = null
         )
     }
 

@@ -50,7 +50,7 @@ object PdlPersonServiceTest : Spek({
 
             assertFailsWith<RuntimeException> {
                 runBlocking {
-                    val pdlPerson = pdlService.getPdlPerson("123", loggingMeta)
+                    pdlService.getPdlPerson("123", loggingMeta)
                 }
             }
         }
@@ -66,7 +66,7 @@ object PdlPersonServiceTest : Spek({
 
             assertFailsWith<RuntimeException> {
                 runBlocking {
-                    val pdlPerson = pdlService.getPdlPerson("123", loggingMeta)
+                    pdlService.getPdlPerson("123", loggingMeta)
                 }
             }
         }
@@ -82,7 +82,7 @@ object PdlPersonServiceTest : Spek({
 
             assertFailsWith<RuntimeException> {
                 runBlocking {
-                    val pdlPerson = pdlService.getPdlPerson("123", loggingMeta)
+                    pdlService.getPdlPerson("123", loggingMeta)
                 }
             }
         }
@@ -99,7 +99,7 @@ object PdlPersonServiceTest : Spek({
 
             assertFailsWith<RuntimeException> {
                 runBlocking {
-                    val pdlPerson = pdlService.getPdlPerson("123", loggingMeta)
+                    pdlService.getPdlPerson("123", loggingMeta)
                 }
             }
         }

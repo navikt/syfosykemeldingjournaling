@@ -15,7 +15,7 @@ import no.nav.syfo.sm.Diagnosekoder.objectMapper
 
 fun main() {
     val sykmelding: Sykmelding = objectMapper.readValue(PdfPayload::class.java.getResourceAsStream("/sm.json"))
-    val receivedSykmelding = ReceivedSykmelding(sykmelding, "123456789", "98765432", "123456789", "abcdef", "abcdef", "98765432", "123456789", "546372819", "Legekontor AS", LocalDateTime.now(), "1", "<xml/>", "")
+    val receivedSykmelding = ReceivedSykmelding(sykmelding, "123456789", "98765432", "123456789", "abcdef", "abcdef", "98765432", "123456789", "546372819", "Legekontor AS", LocalDateTime.now(), "1", null, "", null)
     val validationResult = ValidationResult(status = Status.MANUAL_PROCESSING, ruleHits = listOf(
             RuleInfo(ruleName = "BEHANDLER_KI_NOT_USING_VALID_DIAGNOSECODE_TYPE",
                     messageForUser = "Den som skrev sykmeldingen mangler autorisasjon.",
