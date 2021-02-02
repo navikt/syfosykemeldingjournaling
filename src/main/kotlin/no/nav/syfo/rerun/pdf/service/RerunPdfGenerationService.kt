@@ -11,6 +11,7 @@ import no.nav.syfo.createListener
 import no.nav.syfo.model.ReceivedSykmelding
 import no.nav.syfo.model.Status
 import no.nav.syfo.model.ValidationResult
+import no.nav.syfo.objectMapper
 import no.nav.syfo.sak.avro.PrioritetType
 import no.nav.syfo.sak.avro.ProduceTask
 import no.nav.syfo.service.JournalService
@@ -43,10 +44,9 @@ class RerunPdfGenerationService(
     private suspend fun subscribeAndCreatePDF() {
         while (applicationState.alive) {
             kafkaConsumer.poll(Duration.ofMillis(0)).forEach {
-                // handleReceivedSykmelding(objectMapper.readValue(it.value(), RerunKafkaMessage::class.java))
-                log.info("Ignorerer rerun-topic")
+                handleReceivedSykmelding(objectMapper.readValue(it.value(), RerunKafkaMessage::class.java))
             }
-            delay(100)
+            delay(1)
         }
     }
 
