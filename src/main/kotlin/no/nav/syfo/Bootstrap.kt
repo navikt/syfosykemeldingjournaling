@@ -101,7 +101,7 @@ fun main() {
     val pdlPersonService = PdlFactory.getPdlService(env, stsClient, httpClient)
 
     val kafkaBaseConfig = loadBaseConfig(env, credentials).envOverrides()
-    kafkaBaseConfig["auto.offset.reset"] = "none"
+    kafkaBaseConfig["auto.offset.reset"] = "earliest"
     val consumerConfig = kafkaBaseConfig.toConsumerConfig(
             "${env.applicationName}-consumer", valueDeserializer = StringDeserializer::class)
     val producerConfig = kafkaBaseConfig.toProducerConfig(env.applicationName, KafkaAvroSerializer::class)
@@ -215,9 +215,10 @@ suspend fun blockingApplicationLogic(
     applicationState: ApplicationState,
     journalService: JournalService
 ) {
+    var skalBehandle = false
     while (applicationState.ready) {
         consumer.poll(Duration.ofMillis(100)).forEach {
-            log.info("Offset for topic: privat-syfo-sm2013-sak, offset: ${it.offset()}")
+            log.info("Offset for topic: privat-syfo-sm2013-sak, offset: ${it.offset()}, partisjon: ${it.partition()}")
             val behandlingsUtfallReceivedSykmelding: BehandlingsUtfallReceivedSykmelding =
                     objectMapper.readValue(it.value())
             val receivedSykmelding: ReceivedSykmelding =
@@ -231,9 +232,20 @@ suspend fun blockingApplicationLogic(
                     msgId = receivedSykmelding.msgId,
                     sykmeldingId = receivedSykmelding.sykmelding.id
             )
-            journalService.onJournalRequest(receivedSykmelding, validationResult, loggingMeta)
+
+            if (skalBehandle) {
+                journalService.onJournalRequest(receivedSykmelding, validationResult, loggingMeta)
+            } else {
+                log.info("Mottok sykmelding som vi har behandlet før med id ${receivedSykmelding.sykmelding.id}")
+            }
+            if (receivedSykmelding.sykmelding.id in sykmeldingsider) {
+                skalBehandle = true
+                log.info("fant siste behandlede sykmelding ${receivedSykmelding.sykmelding.id}, offset: ${it.offset()}, partisjon: ${it.partition()}")
+            }
         }
 
         delay(1)
     }
 }
+
+val sykmeldingsider = listOf("7cac7002-54c0-49e8-8e54-f622bbda922f", "2d483f73-e29b-4de2-a527-019f8c7e1f07", "349e422c-025f-42d3-b43a-0281003fe22b")
