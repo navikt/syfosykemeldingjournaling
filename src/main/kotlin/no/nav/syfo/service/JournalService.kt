@@ -49,7 +49,7 @@ class JournalService(
                 log.error("Error sending to kafkatopic {} {}", journalCreatedTopic, fields(loggingMeta))
                 throw ex
             }
-            if (!skalIkkeOpprettePdf(receivedSykmelding.sykmelding.avsenderSystem)) {
+            if (skalOpprettePdf(receivedSykmelding.sykmelding.avsenderSystem)) {
                 MELDING_LAGER_I_JOARK.inc()
                 log.info("Melding lagret i Joark med journalpostId {}, {}",
                     registerJournal.journalpostId,
@@ -59,23 +59,24 @@ class JournalService(
     }
 
     suspend fun opprettEllerFinnPDFJournalpost(receivedSykmelding: ReceivedSykmelding, validationResult: ValidationResult, sakid: String, loggingMeta: LoggingMeta): String {
-        if (skalIkkeOpprettePdf(receivedSykmelding.sykmelding.avsenderSystem)) {
+        return if (skalOpprettePdf(receivedSykmelding.sykmelding.avsenderSystem)) {
+            val patient = pdlPersonService.getPdlPerson(receivedSykmelding.personNrPasient, loggingMeta)
+            val pdfPayload = createPdfPayload(receivedSykmelding, validationResult, patient)
+
+            val pdf = pdfgenClient.createPdf(pdfPayload)
+            log.info("PDF generert {}", fields(loggingMeta))
+
+            val journalpostPayload = createJournalpostPayload(receivedSykmelding, sakid, pdf, validationResult)
+            val journalpost = dokArkivClient.createJournalpost(journalpostPayload, loggingMeta)
+
+            journalpost.journalpostId
+        } else {
             log.info("Oppretter ikke ny pdf for papirsykmelding {}", fields(loggingMeta))
-            return receivedSykmelding.sykmelding.avsenderSystem.versjon
+            receivedSykmelding.sykmelding.avsenderSystem.versjon
         }
-        val patient = pdlPersonService.getPdlPerson(receivedSykmelding.personNrPasient, loggingMeta)
-        val pdfPayload = createPdfPayload(receivedSykmelding, validationResult, patient)
-
-        val pdf = pdfgenClient.createPdf(pdfPayload)
-        log.info("PDF generert {}", fields(loggingMeta))
-
-        val journalpostPayload = createJournalpostPayload(receivedSykmelding, sakid, pdf, validationResult)
-        val journalpost = dokArkivClient.createJournalpost(journalpostPayload, loggingMeta)
-
-        return journalpost.journalpostId
     }
 
-    private fun skalIkkeOpprettePdf(avsenderSystem: AvsenderSystem): Boolean {
-        return (avsenderSystem.navn == "Papirsykmelding" && avsenderSystem.versjon != "1")
+    private fun skalOpprettePdf(avsenderSystem: AvsenderSystem): Boolean {
+        return !(avsenderSystem.navn == "Papirsykmelding" && avsenderSystem.versjon != "1")
     }
 }
