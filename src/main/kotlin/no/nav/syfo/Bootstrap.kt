@@ -108,7 +108,7 @@ fun main() {
     val producer = KafkaProducer<String, RegisterJournal>(producerConfig)
 
     val streamProperties = kafkaBaseConfig.toStreamsConfig(env.applicationName, valueSerde = Serdes.String()::class)
-    val journalService = JournalService(env, producer, sakClient, dokArkivClient, pdfgenClient, pdlPersonService)
+    val journalService = JournalService(env.journalCreatedTopic, producer, sakClient, dokArkivClient, pdfgenClient, pdlPersonService)
 
     setupRerunDependencies(journalService, env, consumerConfig, applicationState, producerConfig)
 
