@@ -7,7 +7,8 @@ data class PdfPayload(
     val sykmelding: Sykmelding,
     val validationResult: ValidationResult,
     val mottattDato: LocalDateTime,
-    val behandlerKontorOrgName: String
+    val behandlerKontorOrgName: String,
+    val merknader: List<Merknad>?
 )
 
 data class Pasient(
