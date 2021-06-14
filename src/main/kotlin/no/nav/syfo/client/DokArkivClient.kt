@@ -13,7 +13,6 @@ import io.ktor.util.KtorExperimentalAPI
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import net.logstash.logback.argument.StructuredArguments.fields
-import no.nav.syfo.helpers.retry
 import no.nav.syfo.log
 import no.nav.syfo.model.AvsenderMottaker
 import no.nav.syfo.model.Behandler
@@ -40,8 +39,7 @@ class DokArkivClient(
     suspend fun createJournalpost(
         journalpostRequest: JournalpostRequest,
         loggingMeta: LoggingMeta
-    ): JournalpostResponse = retry(callName = "dokarkiv",
-            retryIntervals = arrayOf(500L, 1000L, 3000L, 5000L, 10000L)) {
+    ): JournalpostResponse =
         try {
             log.info("Kall til dokarkiv Nav-Callid {}, {}", journalpostRequest.eksternReferanseId,
                     fields(loggingMeta))
@@ -62,7 +60,6 @@ class DokArkivClient(
             log.warn("Oppretting av journalpost feilet: ${e.message}, {}", fields(loggingMeta))
             throw e
         }
-    }
 }
 
 fun createJournalpostPayload(
