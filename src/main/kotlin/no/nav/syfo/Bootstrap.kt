@@ -45,10 +45,12 @@ import no.nav.syfo.util.LoggingMeta
 import no.nav.syfo.util.TrackableException
 import org.apache.kafka.clients.consumer.KafkaConsumer
 import org.apache.kafka.clients.producer.KafkaProducer
+import org.apache.kafka.clients.producer.ProducerConfig
 import org.apache.kafka.common.serialization.Serdes
 import org.apache.kafka.common.serialization.StringDeserializer
 import org.apache.kafka.streams.KafkaStreams
 import org.apache.kafka.streams.StreamsBuilder
+import org.apache.kafka.streams.StreamsConfig
 import org.apache.kafka.streams.kstream.Consumed
 import org.apache.kafka.streams.kstream.JoinWindows
 import org.apache.kafka.streams.kstream.Joined
@@ -105,9 +107,11 @@ fun main() {
     val consumerConfig = kafkaBaseConfig.toConsumerConfig(
             "${env.applicationName}-consumer", valueDeserializer = StringDeserializer::class)
     val producerConfig = kafkaBaseConfig.toProducerConfig(env.applicationName, KafkaAvroSerializer::class)
+            .apply { this.setProperty(ProducerConfig.RETRIES_CONFIG, "100") }
     val producer = KafkaProducer<String, RegisterJournal>(producerConfig)
-
     val streamProperties = kafkaBaseConfig.toStreamsConfig(env.applicationName, valueSerde = Serdes.String()::class)
+            .apply { this.setProperty(StreamsConfig.NUM_STREAM_THREADS_CONFIG, "1")}
+
     val journalService = JournalService(env.journalCreatedTopic, producer, sakClient, dokArkivClient, pdfgenClient, pdlPersonService)
 
     setupRerunDependencies(journalService, env, consumerConfig, applicationState, producerConfig)
