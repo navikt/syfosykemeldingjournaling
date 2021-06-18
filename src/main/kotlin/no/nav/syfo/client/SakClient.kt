@@ -17,13 +17,13 @@ import no.nav.syfo.util.LoggingMeta
 
 @KtorExperimentalAPI
 class SakClient constructor(
-        val url: String,
-        val oidcClient: StsOidcClient,
-        val httpClient: HttpClient
+    val url: String,
+    val oidcClient: StsOidcClient,
+    val httpClient: HttpClient
 ) {
     private suspend fun createSak(
-            pasientAktoerId: String,
-            msgId: String
+        pasientAktoerId: String,
+        msgId: String
     ): SakResponse =
             httpClient.post<SakResponse>(url) {
                 contentType(ContentType.Application.Json)
@@ -39,8 +39,8 @@ class SakClient constructor(
             }
 
     private suspend fun findSak(
-            pasientAktoerId: String,
-            msgId: String
+        pasientAktoerId: String,
+        msgId: String
     ): List<SakResponse>? =
             httpClient.get<List<SakResponse>?>(url) {
                 contentType(ContentType.Application.Json)
@@ -52,9 +52,9 @@ class SakClient constructor(
             }
 
     suspend fun findOrCreateSak(
-            pasientAktoerId: String,
-            msgId: String,
-            loggingMeta: LoggingMeta
+        pasientAktoerId: String,
+        msgId: String,
+        loggingMeta: LoggingMeta
     ): SakResponse {
         val findSakResponse = findSak(pasientAktoerId, msgId)
 
