@@ -13,7 +13,6 @@ import io.ktor.client.features.json.JacksonSerializer
 import io.ktor.client.features.json.JsonFeature
 import io.ktor.util.KtorExperimentalAPI
 import io.prometheus.client.hotspot.DefaultExports
-import java.nio.file.Paths
 import java.time.Duration
 import java.util.Properties
 import java.util.concurrent.TimeUnit
@@ -72,7 +71,7 @@ val log: Logger = LoggerFactory.getLogger("no.nav.syfo.syfosmsak")
 @KtorExperimentalAPI
 fun main() {
     val env = Environment()
-    val credentials = objectMapper.readValue<VaultCredentials>(Paths.get("/var/run/secrets/nais.io/vault/credentials.json").toFile())
+    val credentials = VaultCredentials()
     val applicationState = ApplicationState()
     val applicationEngine = createApplicationEngine(
             env,
@@ -95,7 +94,7 @@ fun main() {
         expectSuccess = false
     }
 
-    val stsClient = StsOidcClient(credentials.serviceuserUsername, credentials.serviceuserPassword)
+    val stsClient = StsOidcClient(credentials.serviceuserUsername, credentials.serviceuserPassword, env.securityTokenServiceURL)
     val sakClient = SakClient(env.opprettSakUrl, stsClient, httpClient)
     val dokArkivClient = DokArkivClient(env.dokArkivUrl, stsClient, httpClient)
     val pdfgenClient = PdfgenClient(env.pdfgen, httpClient)
@@ -110,7 +109,7 @@ fun main() {
             .apply { this.setProperty(ProducerConfig.RETRIES_CONFIG, "100") }
     val producer = KafkaProducer<String, RegisterJournal>(producerConfig)
     val streamProperties = kafkaBaseConfig.toStreamsConfig(env.applicationName, valueSerde = Serdes.String()::class)
-            .apply { this.setProperty(StreamsConfig.NUM_STREAM_THREADS_CONFIG, "1")}
+            .apply { this.setProperty(StreamsConfig.NUM_STREAM_THREADS_CONFIG, "1") }
 
     val journalService = JournalService(env.journalCreatedTopic, producer, sakClient, dokArkivClient, pdfgenClient, pdlPersonService)
 
