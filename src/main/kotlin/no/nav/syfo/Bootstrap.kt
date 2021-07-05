@@ -235,7 +235,11 @@ suspend fun blockingApplicationLogic(
                     sykmeldingId = receivedSykmelding.sykmelding.id
             )
 
-            journalService.onJournalRequest(receivedSykmelding, validationResult, loggingMeta)
+            try {
+                journalService.onJournalRequest(receivedSykmelding, validationResult, loggingMeta)
+            } catch (e: Exception) {
+                log.error("Ignorerer feil i dev ${receivedSykmelding.sykmelding.id}, ${receivedSykmelding.navLogId}")
+            }
         }
 
         delay(1)
