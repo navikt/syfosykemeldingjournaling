@@ -19,7 +19,7 @@ data class Environment(
     val opprettSakUrl: String = getEnvVar("OPPRETT_SAK_URL", "http://sak.default/api/v1/saker"),
     val dokArkivUrl: String = getEnvVar("DOK_ARKIV_URL"),
     val securityTokenServiceURL: String = getEnvVar("SECURITY_TOKEN_SERVICE_URL", "http://security-token-service.default/rest/v1/sts/token"),
-    val pdfgen: String = getEnvVar("PDF_GEN_URL", "http://syfopdfgen.default/api/v1/genpdf/syfosm/syfosm"),
+    val pdfgen: String = getEnvVar("PDF_GEN_URL", "http://syfopdfgen.teamsykmelding/api/v1/genpdf/syfosm/syfosm"),
     val rerunTopicName: String = getEnvVar("RERUN_TOPIC_NAME", "privat-syfo-register-rerun-tmp"),
     val pdlGraphqlPath: String = getEnvVar("PDL_GRAPHQL_PATH"),
     override val truststore: String? = getEnvVar("NAV_TRUSTSTORE_PATH"),
