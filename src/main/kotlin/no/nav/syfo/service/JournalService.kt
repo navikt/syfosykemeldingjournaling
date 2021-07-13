@@ -45,6 +45,7 @@ class JournalService(
 
             try {
                 producer.send(ProducerRecord(journalCreatedTopic, receivedSykmelding.sykmelding.id, registerJournal)).get()
+                log.info("message sendt to kafka", fields(loggingMeta))
             } catch (ex: Exception) {
                 log.error("Error sending to kafkatopic {} {}", journalCreatedTopic, fields(loggingMeta))
                 throw ex
